@@ -22,10 +22,7 @@ jobs:
       - run: npm run skill:check
       - run: npm run release:check
       - name: Build release artifact
-        run: |
-          mkdir -p dist
-          npm pack --pack-destination dist
-          shasum -a 256 dist/*.tgz > dist/SHA256SUMS
+        run: node scripts/build-release-artifacts.mjs dist
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

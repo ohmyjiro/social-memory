@@ -24,3 +24,5 @@ All notable changes to Social Memory will be documented here.
 - Live-probed X and Threads likes, saves, and reposts in isolated temporary libraries.
 - Hardened Evidence publication against source-file races and streamed large-file hashes.
 - Rejected symbolic-link database/config targets and preserved loaded agents when unload fails.
+- Added conditional `doctor` diagnostics for the Aside CLI when a browser-backed connector is configured.
+- Added portable GitHub Release artifacts with basename-only SHA-256 manifests.

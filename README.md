@@ -43,28 +43,55 @@ X/Threads 브라우저 커넥터는 전용 프로필에서 설정한 핸들과 �
 - 데이터용 절대경로
 - 프로덕션 의존성 없음
 
-## 로컬 첫 실행
+Threads 또는 `x-aside` 브라우저 커넥터를 사용할 때만 Aside 데스크탑과 CLI가 추가로 필요합니다. 공식 설치 스크립트를 사용한 뒤 CLI를 최신 상태로 만듭니다.
+
+```bash
+curl -fsSL https://releases.aside.com/install.sh | bash
+aside --update
+aside --version
+```
+
+수집 계정마다 다른 Aside 프로필을 사용하고, 해당 프로필에는 설정할 SNS 계정 하나만 로그인합니다. `social-memory doctor --json`은 브라우저 커넥터가 설정된 라이브러리에서 Aside CLI가 없으면 `needs_attention`을 반환합니다. 범용 import와 공식 X API 커넥터는 Aside가 필요하지 않습니다.
+
+## 설치
+
+GitHub Release에서 tarball과 `SHA256SUMS`를 같은 폴더에 받은 뒤 해시를 검증하고 전역 설치합니다.
+
+```bash
+shasum -a 256 -c SHA256SUMS
+npm install --global ./social-memory-0.1.0.tgz
+social-memory --version
+```
+
+소스에서 설치할 때는 테스트를 먼저 통과시킵니다.
 
 ```bash
 git clone https://github.com/ohmyjiro/social-memory.git
 cd social-memory
+npm install --ignore-scripts
 npm test
+npm install --global .
+social-memory --version
+```
 
+## 로컬 첫 실행
+
+```bash
 export SOCIAL_MEMORY_DATA_DIR="/absolute/path/to/social-memory-data"
-node src/cli.mjs init --data-dir "$SOCIAL_MEMORY_DATA_DIR" --json
-node src/cli.mjs connector list --json
-node src/cli.mjs connector configure fixture \
+social-memory init --data-dir "$SOCIAL_MEMORY_DATA_DIR" --json
+social-memory connector list --json
+social-memory connector configure fixture \
   --account fictional_reader \
   --include like,save \
   --json
-node src/cli.mjs sync --json
-node src/cli.mjs doctor --json
+social-memory sync --json
+social-memory doctor --json
 ```
 
 실데이터 JSON 가져오기:
 
 ```bash
-node src/cli.mjs import \
+social-memory import \
   --file "/absolute/path/to/export.json" \
   --account my_archive \
   --include like,save \
@@ -164,8 +191,8 @@ social-memory schedule uninstall --json
 종류별 검색:
 
 ```bash
-node src/cli.mjs search "fixture" --kind like --json
-node src/cli.mjs search "fixture" --kind save --json
+social-memory search "fixture" --kind like --json
+social-memory search "fixture" --kind save --json
 ```
 
 두 검색은 같은 Source를 찾을 수 있지만 Capture provenance는 서로 구별됩니다.

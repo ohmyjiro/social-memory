@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -52,6 +53,46 @@ test('doctor distinguishes an uninitialized path from a ready versioned library'
   assert.equal(after.checks.permissions.status, 'pass');
 });
 
+test('doctor reports a missing Aside CLI when a browser connector is configured', async () => {
+  const parent = await mkdtemp(join(tmpdir(), 'social-memory-doctor-aside-'));
+  const dataDir = join(parent, 'library');
+  const env = { SOCIAL_MEMORY_DATA_DIR: dataDir };
+  const output = captureOutput();
+
+  await runCli(['init', '--data-dir', dataDir, '--json'], { env: {}, stdout: output.stream });
+  await runCli([
+    'connector', 'configure', 'threads',
+    '--account', 'reader_one',
+    '--profile-ref', 'threads-reader',
+    '--include', 'save',
+    '--json',
+  ], { env, stdout: output.stream });
+
+  const result = await runCli(['doctor', '--json'], {
+    env,
+    stdout: output.stream,
+    commandAvailable: () => false,
+  });
+
+  assert.equal(result.status, 'needs_attention');
+  assert.deepEqual(result.checks.aside, {
+    status: 'fail',
+    reason: 'cli_not_found',
+    requiredBy: ['threads'],
+  });
+
+  const available = await runCli(['doctor', '--json'], {
+    env,
+    stdout: output.stream,
+    commandAvailable: () => true,
+  });
+  assert.equal(available.status, 'ready');
+  assert.deepEqual(available.checks.aside, {
+    status: 'pass',
+    requiredBy: ['threads'],
+  });
+});
+
 test('Node requirement checks the minor boundary instead of only the major version', () => {
   assert.equal(satisfiesNodeVersion('22.15.99', '22.16.0'), false);
   assert.equal(satisfiesNodeVersion('22.16.0', '22.16.0'), true);
@@ -100,4 +141,21 @@ test('public release check rejects an unlicensed package', () => {
 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /open-source license is selected/);
+});
+
+test('release artifact builder writes a portable checksum using only the tarball name', async () => {
+  const outputDir = await mkdtemp(join(tmpdir(), 'social-memory-release-artifacts-'));
+  const result = spawnSync(process.execPath, ['scripts/build-release-artifacts.mjs', outputDir], {
+    cwd: new URL('../', import.meta.url),
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+
+  const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url)));
+  const filename = `${packageJson.name}-${packageJson.version}.tgz`;
+  const tarball = await readFile(join(outputDir, filename));
+  const digest = createHash('sha256').update(tarball).digest('hex');
+  const checksum = await readFile(join(outputDir, 'SHA256SUMS'), 'utf8');
+
+  assert.equal(checksum, `${digest}  ${filename}\n`);
 });

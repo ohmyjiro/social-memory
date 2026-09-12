@@ -2,6 +2,7 @@
 
 import { pathToFileURL } from 'node:url';
 import { readFileSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 
 import { configureAccount, listAccounts } from './accounts.mjs';
 import { scaffoldAgentIntegration } from './agent-scaffold.mjs';
@@ -98,7 +99,11 @@ function health(db) {
   };
 }
 
-function doctor(config) {
+function executableAvailable(command) {
+  return spawnSync(command, ['--version'], { stdio: 'ignore' }).status === 0;
+}
+
+function doctor(config, commandAvailable) {
   const checks = {
     node: {
       status: satisfiesNodeVersion(process.versions.node, '22.16.0') ? 'pass' : 'fail',
@@ -135,6 +140,17 @@ function doctor(config) {
   try {
     const version = db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get().version;
     checks.schema = { status: version === 2 ? 'pass' : 'fail', version };
+    const asideConnectors = db.prepare(`
+      SELECT DISTINCT connector_id
+      FROM accounts
+      WHERE connector_id IN ('threads', 'x-aside')
+      ORDER BY connector_id
+    `).all().map(({ connector_id: connectorId }) => connectorId);
+    if (asideConnectors.length > 0) {
+      checks.aside = commandAvailable('aside')
+        ? { status: 'pass', requiredBy: asideConnectors }
+        : { status: 'fail', reason: 'cli_not_found', requiredBy: asideConnectors };
+    }
   } finally {
     db.close();
   }
@@ -171,6 +187,7 @@ export async function runCli(args, {
     threadsConnector,
   ]),
   scheduleManager = createLaunchAgentManager(),
+  commandAvailable = executableAvailable,
 } = {}) {
   const { positional, options } = parseArguments(args);
   const [command, subcommand, subject] = positional;
@@ -201,7 +218,7 @@ export async function runCli(args, {
 
   const config = loadConfig(env);
   if (command === 'doctor') {
-    const result = doctor(config);
+    const result = doctor(config, commandAvailable);
     emit(stdout, result, options.json);
     return result;
   }
