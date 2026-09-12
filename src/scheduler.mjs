@@ -114,6 +114,7 @@ ${values}
 }
 
 export function createLaunchAgentManager({
+  platform = process.platform,
   homeDir = homedir(),
   uid = process.getuid?.(),
   nodePath = process.execPath,
@@ -122,6 +123,12 @@ export function createLaunchAgentManager({
   execFileImpl = execFile,
 } = {}) {
   if (!Number.isInteger(uid)) throw new Error('A numeric macOS user id is required');
+
+  function requireSupportedPlatform() {
+    if (platform !== 'darwin') {
+      throw scheduleError('unsupported_platform', 'LaunchAgent scheduling is available only on macOS');
+    }
+  }
 
   function paths(config) {
     const label = labelFor(config.dataDir);
@@ -133,6 +140,7 @@ export function createLaunchAgentManager({
 
   return Object.freeze({
     async install({ db, config, intervalMinutes }) {
+      requireSupportedPlatform();
       const minutes = Number(intervalMinutes);
       if (!Number.isInteger(minutes) || minutes < 5 || minutes > 43_200) {
         throw scheduleError('invalid_interval', 'Schedule interval must be an integer from 5 to 43200 minutes');
@@ -164,6 +172,7 @@ export function createLaunchAgentManager({
       return { status: 'installed', label, plistPath, intervalMinutes: minutes };
     },
     async status({ config }) {
+      requireSupportedPlatform();
       const { label, plistPath } = paths(config);
       let installed = true;
       try {
@@ -180,6 +189,7 @@ export function createLaunchAgentManager({
       }
     },
     async uninstall({ config }) {
+      requireSupportedPlatform();
       const { label, plistPath } = paths(config);
       try {
         await execFileImpl('launchctl', ['bootout', `gui/${uid}/${label}`], { shell: false });

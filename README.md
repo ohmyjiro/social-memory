@@ -181,6 +181,8 @@ social-memory upgrade --json
 
 스케줄러는 현재 선택된 모든 계정×종류 조합이 같은 인증 계정으로 수동 동기화에 성공한 뒤에만 설치됩니다. X 계정은 Keychain 방식이어야 합니다.
 
+LaunchAgent 스케줄링은 macOS 전용입니다. Linux에서 `schedule install`, `schedule status`, `schedule uninstall`을 실행하면 파일이나 프로세스를 건드리기 전에 `unsupported_platform`으로 중단합니다. 저장·검색·import·MCP는 Linux에서도 CI 검증 범위입니다.
+
 ```bash
 social-memory schedule readiness --json
 social-memory schedule install --interval-minutes 1440 --json

@@ -27,3 +27,4 @@ All notable changes to Social Memory will be documented here.
 - Added conditional `doctor` diagnostics for the Aside CLI when a browser-backed connector is configured.
 - Added portable GitHub Release artifacts with basename-only SHA-256 manifests.
 - Extended packed-artifact verification through generated Codex setup and installed stdio MCP discovery.
+- Made macOS-only scheduler operations fail before filesystem or process access on unsupported platforms.

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -47,7 +47,11 @@ test('scheduler install is blocked until every selected stream has a manual succ
     identity: 'reader_one',
     selectedCaptureKinds: ['like', 'save'],
   });
-  const manager = createLaunchAgentManager({ homeDir, execFileImpl: async () => ({}) });
+  const manager = createLaunchAgentManager({
+    platform: 'darwin',
+    homeDir,
+    execFileImpl: async () => ({}),
+  });
 
   await assert.rejects(() => manager.install({ db, config, intervalMinutes: 60 }), /manual sync/i);
   await runSync({ db, config, registry, filters: { accountId: account.id, kind: 'like' } });
@@ -64,6 +68,7 @@ test('scheduler installs only after receipts cover the exact selected streams', 
   await runSync({ db, config, registry });
   const calls = [];
   const manager = createLaunchAgentManager({
+    platform: 'darwin',
     homeDir,
     uid: 501,
     nodePath: '/opt/node/bin/node',
@@ -106,6 +111,7 @@ test('scheduler uninstall keeps the plist when a loaded agent cannot be stopped'
   const { config, homeDir } = await context(t);
   const calls = [];
   const manager = createLaunchAgentManager({
+    platform: 'darwin',
     homeDir,
     uid: 501,
     execFileImpl: async (command, args) => {
@@ -125,4 +131,33 @@ test('scheduler uninstall keeps the plist when a loaded agent cannot be stopped'
   );
   assert.equal(await readFile(descriptor.plistPath, 'utf8'), 'placeholder');
   assert.deepEqual(calls.map(({ args }) => args[0]), ['bootout', 'print']);
+});
+
+test('scheduler rejects unsupported platforms before filesystem or process access', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'social-memory-unsupported-scheduler-'));
+  const homeDir = join(root, 'home');
+  const config = {
+    dataDir: join(root, 'library'),
+    logsDir: join(root, 'library', 'logs'),
+  };
+  const calls = [];
+  const manager = createLaunchAgentManager({
+    platform: 'linux',
+    homeDir,
+    uid: 501,
+    execFileImpl: async (...args) => {
+      calls.push(args);
+      return { stdout: '', stderr: '' };
+    },
+  });
+  const unsupported = (error) => error.code === 'unsupported_platform';
+
+  await assert.rejects(() => manager.status({ config }), unsupported);
+  await assert.rejects(
+    () => manager.install({ db: null, config, intervalMinutes: 60 }),
+    unsupported,
+  );
+  await assert.rejects(() => manager.uninstall({ config }), unsupported);
+  await assert.rejects(() => access(homeDir), /ENOENT/);
+  assert.deepEqual(calls, []);
 });
