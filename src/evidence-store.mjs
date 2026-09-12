@@ -1,6 +1,6 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
-import { copyFile, mkdir, readFile, rename, stat, unlink } from 'node:fs/promises';
+import { copyFile, link, mkdir, readFile, stat, unlink } from 'node:fs/promises';
 import { basename, join, posix } from 'node:path';
 
 export async function storeObject(config, filePath) {
@@ -17,15 +17,16 @@ export async function storeObject(config, filePath) {
   const objectPath = posix.join(relativeDirectory, sha256.slice(2));
   const destinationDirectory = join(config.dataDir, relativeDirectory);
   const destination = join(config.dataDir, objectPath);
-  const temporary = join(config.stagingDir, `${sha256}-${process.pid}.tmp`);
+  const temporary = join(config.stagingDir, `${sha256}-${randomUUID()}.tmp`);
 
   await mkdir(destinationDirectory, { recursive: true, mode: 0o700 });
   try {
     await copyFile(filePath, temporary, constants.COPYFILE_EXCL);
-    await rename(temporary, destination);
+    await link(temporary, destination);
   } catch (error) {
-    await unlink(temporary).catch(() => {});
     if (error?.code !== 'EEXIST') throw error;
+  } finally {
+    await unlink(temporary).catch(() => {});
   }
 
   return {

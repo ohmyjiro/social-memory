@@ -127,6 +127,20 @@ test('content-addressed evidence stores duplicate bytes once', async (t) => {
   assert.equal(db.prepare('SELECT COUNT(*) AS count FROM evidence').get().count, 2);
 });
 
+test('concurrent storage of identical evidence publishes one complete object', async (t) => {
+  const { config } = await createTestContext(t);
+
+  const stored = await Promise.all(
+    Array.from({ length: 20 }, () => storeObject(config, fixtureFile)),
+  );
+
+  assert.equal(new Set(stored.map(({ objectPath }) => objectPath)).size, 1);
+  assert.equal(
+    await readFile(join(config.dataDir, stored[0].objectPath), 'utf8'),
+    await readFile(fixtureFile, 'utf8'),
+  );
+});
+
 test('a malformed event rolls back the entire database batch', async (t) => {
   const { account, config, db } = await createTestContext(t);
   const valid = eventFor('like', 'favorite', { externalId: 'valid-in-bad-batch' });
