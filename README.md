@@ -236,6 +236,10 @@ MCP 클라이언트에는 이 저장소의 절대경로와 데이터 디렉터�
 
 Claude Code와 Codex 같은 로컬 에이전트 환경이 초기 대상입니다. ChatGPT가 로컬 stdio MCP 서버에 직접 연결된다고 가정하지 않습니다. 원격 브리지는 별도 보안 설계가 필요한 후속 범위입니다.
 
+## 릴리스
+
+`v*` 태그를 푸시하면 GitHub Actions가 테스트와 엄격한 릴리스 검사를 다시 실행한 후 npm tarball과 `SHA256SUMS`를 GitHub Release에 첨부합니다. `UNLICENSED` 상태에서는 태그 릴리스가 차단됩니다. npm 레지스트리 게시는 GitHub Release와 분리된 후속 단계입니다.
+
 ## 개인정보와 계정 보안
 
 - 비밀번호, OTP, 쿠키, 액세스 토큰을 config나 DB에 넣지 않습니다.

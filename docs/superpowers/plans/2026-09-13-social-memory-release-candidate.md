@@ -82,6 +82,7 @@ The release is not complete if only fixture tests pass. Live X and Threads probe
 - Run package extraction/install from a path containing spaces.
 - Scan the package and full Git history for credentials, private handles, home paths, databases, browser data, and personal captures.
 - Run bounded live X and Threads probes without persisting secrets.
+- Publish tagged tarballs and their SHA-256 manifest through a license-gated GitHub Actions workflow.
 - Tag only after every required gate passes.
 
 ## Risk gates
