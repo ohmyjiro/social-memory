@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS objects (
 CREATE TABLE IF NOT EXISTS evidence (
   id INTEGER PRIMARY KEY,
   source_id INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+  dedupe_key TEXT NOT NULL,
   kind TEXT NOT NULL,
   text TEXT,
   object_sha256 TEXT REFERENCES objects(sha256),
@@ -71,7 +72,8 @@ CREATE TABLE IF NOT EXISTS evidence (
   mime_type TEXT,
   parent_evidence_id INTEGER REFERENCES evidence(id),
   provenance TEXT NOT NULL,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  UNIQUE(source_id, dedupe_key)
 ) STRICT;
 
 CREATE TABLE IF NOT EXISTS collection_runs (
