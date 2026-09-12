@@ -120,3 +120,12 @@ test('identity mismatch fails closed before any collection call', async (t) => {
   assert.equal(summary.streams.length, 2);
   assert.ok(summary.streams.every((stream) => stream.errorCode === 'account_mismatch'));
 });
+
+test('sync with no matching streams is not reported as success', async (t) => {
+  const connector = createObservedConnector();
+  const { config, db, registry } = await createTestContext(t, connector);
+
+  const summary = await runSync({ db, config, registry });
+
+  assert.deepEqual(summary, { status: 'no_streams', streams: [] });
+});

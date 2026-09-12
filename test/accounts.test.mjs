@@ -45,6 +45,24 @@ test('account setup requires an explicit valid capture selection', async (t) => 
   );
 });
 
+test('account configuration rejects secret-shaped connector data', async (t) => {
+  const { db, registry } = await createTestContext(t);
+  const base = {
+    connectorId: 'fixture',
+    identity: 'reader_one',
+    selectedCaptureKinds: ['save'],
+  };
+
+  assert.throws(
+    () => configureAccount(db, registry, {
+      ...base,
+      connectorConfig: { accessToken: 'must-not-be-stored' },
+    }),
+    /cannot store|does not accept/i,
+  );
+  assert.equal(db.prepare('SELECT COUNT(*) AS count FROM accounts').get().count, 0);
+});
+
 test('account selection keeps like and save distinct and follows canonical order', async (t) => {
   const { db, registry } = await createTestContext(t);
 

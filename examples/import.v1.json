@@ -1,0 +1,28 @@
+{
+  "schema": "social-memory.capture-export",
+  "version": 1,
+  "captures": [
+    {
+      "kind": "save",
+      "nativeKind": "bookmark",
+      "capturedAt": "2026-01-03T04:05:06.000Z",
+      "source": {
+        "externalId": "example-post-1",
+        "canonicalUrl": "https://example.test/posts/1",
+        "author": {
+          "handle": "example_author",
+          "name": "Example Author"
+        },
+        "text": "Synthetic example content",
+        "sourceCreatedAt": "2026-01-02T03:04:05.000Z"
+      },
+      "evidence": [
+        {
+          "kind": "text",
+          "text": "Synthetic supporting evidence",
+          "provenance": "example-export"
+        }
+      ]
+    }
+  ]
+}

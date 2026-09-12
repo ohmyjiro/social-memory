@@ -1,4 +1,4 @@
-import { chmod, mkdir, writeFile } from 'node:fs/promises';
+import { chmod, lstat, mkdir, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, resolve } from 'node:path';
 
 export function loadConfig(env = process.env) {
@@ -19,6 +19,15 @@ export function loadConfig(env = process.env) {
   });
 }
 
+async function rejectUnsafeExistingFile(path, label) {
+  const details = await lstat(path).catch((error) => {
+    if (error?.code === 'ENOENT') return null;
+    throw error;
+  });
+  if (details?.isSymbolicLink()) throw new Error(`${label} cannot be a symbolic link`);
+  if (details && !details.isFile()) throw new Error(`${label} must be a regular file`);
+}
+
 export async function initializeLibrary(config) {
   const directories = [
     config.dataDir,
@@ -31,6 +40,12 @@ export async function initializeLibrary(config) {
   for (const directory of directories) {
     await mkdir(directory, { recursive: true, mode: 0o700 });
     await chmod(directory, 0o700);
+  }
+
+  await rejectUnsafeExistingFile(config.configPath, 'Library config');
+  await rejectUnsafeExistingFile(config.dbPath, 'Library database');
+  for (const suffix of ['-wal', '-shm', '-journal']) {
+    await rejectUnsafeExistingFile(`${config.dbPath}${suffix}`, `Library database${suffix}`);
   }
 
   const configDocument = `${JSON.stringify({ version: 1, dataDir: config.dataDir }, null, 2)}\n`;

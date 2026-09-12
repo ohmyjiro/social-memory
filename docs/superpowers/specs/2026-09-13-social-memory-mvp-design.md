@@ -29,7 +29,7 @@ The core must not know X or Threads route details. A connector identifies itself
 ## Runtime and dependencies
 
 - macOS is the verified operating system for the MVP.
-- Node.js 22.5 or newer is required.
+- Node.js 22.16 or newer is required.
 - The core uses built-in `node:sqlite`, `node:crypto`, and other standard modules.
 - No production dependency is added in the core phase.
 - Runtime data defaults to a user-selected path outside the repository.
@@ -212,7 +212,7 @@ Vector embeddings, a persistent knowledge graph, and embedded model calls are no
 
 The core library phase is complete when:
 
-1. a fresh checkout with Node.js 22.5+ can initialize a private library without network access;
+1. a fresh checkout with Node.js 22.16+ can initialize a private library without network access;
 2. fixture accounts require an explicit non-empty capture-kind selection;
 3. fixture sync stores `like`, `save`, and `repost` separately while deduplicating their shared Source;
 4. changing selected kinds affects future sync calls without deleting old Captures;

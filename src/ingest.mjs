@@ -27,7 +27,7 @@ function optionalUrl(value, field) {
   }
 }
 
-function validateEvent(event, streamKind) {
+export function normalizeCaptureEvent(event, streamKind) {
   if (!event || typeof event !== 'object') throw new Error('Capture event must be an object');
   const externalId = requireString(event.externalId, 'externalId');
   const captureKind = requireString(event.capture?.kind, 'capture.kind');
@@ -77,7 +77,7 @@ export async function ingestCaptureBatch(db, config, account, kind, events) {
   }
   if (!Array.isArray(events)) throw new Error('events must be an array');
 
-  const normalized = events.map((event) => validateEvent(event, kind));
+  const normalized = events.map((event) => normalizeCaptureEvent(event, kind));
   for (const event of normalized) {
     event.preparedEvidence = [];
     for (const item of event.evidence) {

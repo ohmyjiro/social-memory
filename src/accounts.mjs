@@ -25,8 +25,28 @@ function mapAccount(db, row) {
     profileRef: row.profile_ref,
     authenticatedIdentity: row.authenticated_identity,
     status: row.status,
+    connectorConfig: JSON.parse(row.config_json),
     selectedCaptureKinds: selectedKindsForAccount(db, row.id),
   };
+}
+
+function validateConnectorConfig(connector, value) {
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('connectorConfig must be an object');
+  }
+  for (const key of Object.keys(value)) {
+    if (/token|secret|password|cookie|authorization/i.test(key)) {
+      throw new Error(`connectorConfig cannot store secret field: ${key}`);
+    }
+  }
+  if (typeof connector.normalizeConfig === 'function') {
+    return JSON.stringify(connector.normalizeConfig(value));
+  }
+  if (Object.keys(value).length > 0) {
+    throw new Error(`Connector ${connector.id} does not accept connectorConfig`);
+  }
+  return '{}';
 }
 
 export function configureAccount(db, registry, input) {
@@ -40,6 +60,18 @@ export function configureAccount(db, registry, input) {
   }
 
   const identity = input.identity.trim();
+  if (typeof connector.normalizeProfileRef === 'function') {
+    const existingProfileRef = db.prepare(`
+      SELECT profile_ref
+      FROM accounts
+      WHERE connector_id = ? AND configured_identity = ?
+    `).get(connector.id, identity)?.profile_ref;
+    input = {
+      ...input,
+      profileRef: connector.normalizeProfileRef(input.profileRef ?? existingProfileRef),
+    };
+  }
+  const connectorConfigJson = validateConnectorConfig(connector, input.connectorConfig);
   const now = new Date().toISOString();
 
   db.exec('BEGIN IMMEDIATE');
@@ -54,12 +86,24 @@ export function configureAccount(db, registry, input) {
       INSERT INTO accounts (
         connector_id, configured_identity, profile_ref, status,
         config_json, created_at, updated_at
-      ) VALUES (?, ?, ?, 'unverified', '{}', ?, ?)
+      ) VALUES (?, ?, ?, 'unverified', ?, ?, ?)
       ON CONFLICT(connector_id, configured_identity) DO UPDATE SET
         profile_ref = COALESCE(excluded.profile_ref, accounts.profile_ref),
+        config_json = CASE
+          WHEN ? IS NULL THEN accounts.config_json
+          ELSE excluded.config_json
+        END,
         updated_at = excluded.updated_at
       RETURNING *
-    `).get(connector.id, identity, input.profileRef ?? null, now, now);
+    `).get(
+      connector.id,
+      identity,
+      input.profileRef ?? null,
+      connectorConfigJson ?? '{}',
+      now,
+      now,
+      connectorConfigJson ?? null,
+    );
 
     db.prepare('DELETE FROM account_capture_kinds WHERE account_id = ?').run(row.id);
     const insertKind = db.prepare(

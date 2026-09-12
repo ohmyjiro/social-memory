@@ -1,0 +1,4 @@
+interface:
+  display_name: "Social Memory"
+  short_description: "Search a local social evidence library"
+  default_prompt: "Search my Social Memory library and answer with source evidence."

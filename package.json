@@ -1,16 +1,49 @@
 {
   "name": "social-memory",
   "version": "0.1.0",
-  "private": true,
+  "description": "Local-first social evidence library for agentic LLM clients",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ohmyjiro/social-memory.git"
+  },
+  "homepage": "https://github.com/ohmyjiro/social-memory#readme",
+  "bugs": {
+    "url": "https://github.com/ohmyjiro/social-memory/issues"
+  },
+  "keywords": [
+    "local-first",
+    "social-media",
+    "knowledge-base",
+    "mcp",
+    "sqlite"
+  ],
   "type": "module",
+  "files": [
+    "src/",
+    "skills/",
+    "templates/",
+    "examples/",
+    "schemas/",
+    "README.md",
+    "CHANGELOG.md",
+    "SECURITY.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
-    "social-memory": "./src/cli.mjs"
+    "social-memory": "./src/bin.mjs"
   },
   "engines": {
-    "node": ">=22.5"
+    "node": ">=22.16"
   },
   "scripts": {
     "test": "node --disable-warning=ExperimentalWarning --test",
-    "check": "for file in src/*.mjs src/connectors/*.mjs; do node --check \"$file\" || exit 1; done"
+    "check": "for file in src/*.mjs src/connectors/*.mjs scripts/*.mjs; do node --check \"$file\" || exit 1; done",
+    "skill:check": "node scripts/validate-skill.mjs",
+    "package:check": "node scripts/release-check.mjs --allow-unlicensed",
+    "release:check": "node scripts/release-check.mjs",
+    "prepublishOnly": "npm run release:check"
   }
 }

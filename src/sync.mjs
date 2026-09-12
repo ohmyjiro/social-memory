@@ -39,7 +39,8 @@ function matchesFilters(account, kind, filters = {}) {
 }
 
 function overallStatus(streams) {
-  if (streams.length === 0 || streams.every(({ status }) => status === 'success')) return 'success';
+  if (streams.length === 0) return 'no_streams';
+  if (streams.every(({ status }) => status === 'success')) return 'success';
   if (streams.every(({ status }) => status === 'failed')) return 'failed';
   return 'partial';
 }
@@ -50,8 +51,10 @@ export async function runSync({
   registry,
   filters = {},
   limit = 100,
+  trigger = 'manual',
   clock = () => new Date(),
 }) {
+  if (!['manual', 'scheduled'].includes(trigger)) throw new Error(`Unknown sync trigger: ${trigger}`);
   const streams = [];
 
   for (const account of listAccounts(db)) {
@@ -122,7 +125,13 @@ export async function runSync({
       `).get(account.id, kind)?.cursor ?? null;
 
       try {
-        const collected = await connector.collect({ account, kind, cursor: currentCursor, limit });
+        const collected = await connector.collect({
+          account,
+          kind,
+          cursor: currentCursor,
+          limit,
+          verification,
+        });
         if (!collected || !Array.isArray(collected.events)) {
           const error = new Error('Connector returned an invalid result');
           error.code = 'connector_drift';
@@ -147,6 +156,25 @@ export async function runSync({
           status: 'success',
           itemCount: collected.events.length,
         });
+        if (trigger === 'manual') {
+          db.prepare(`
+            INSERT INTO manual_sync_receipts (
+              account_id, kind, connector_id, authenticated_identity, success_at, run_id
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(account_id, kind) DO UPDATE SET
+              connector_id = excluded.connector_id,
+              authenticated_identity = excluded.authenticated_identity,
+              success_at = excluded.success_at,
+              run_id = excluded.run_id
+          `).run(
+            account.id,
+            kind,
+            account.connectorId,
+            authenticatedIdentity,
+            isoNow(clock),
+            runId,
+          );
+        }
         streams.push({
           accountId: account.id,
           connectorId: account.connectorId,

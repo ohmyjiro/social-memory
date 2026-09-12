@@ -1,3 +1,11 @@
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  version INTEGER PRIMARY KEY,
+  applied_at TEXT NOT NULL
+) STRICT;
+
+INSERT OR IGNORE INTO schema_migrations (version, applied_at)
+VALUES (1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+
 CREATE TABLE IF NOT EXISTS connectors (
   id TEXT PRIMARY KEY,
   capabilities_json TEXT NOT NULL,
@@ -88,6 +96,16 @@ CREATE TABLE IF NOT EXISTS collection_runs (
   detail_json TEXT NOT NULL DEFAULT '{}'
 ) STRICT;
 
+CREATE TABLE IF NOT EXISTS manual_sync_receipts (
+  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK(kind IN ('like', 'save', 'repost', 'manual')),
+  connector_id TEXT NOT NULL,
+  authenticated_identity TEXT NOT NULL,
+  success_at TEXT NOT NULL,
+  run_id INTEGER NOT NULL REFERENCES collection_runs(id),
+  PRIMARY KEY(account_id, kind)
+) STRICT;
+
 CREATE TABLE IF NOT EXISTS sync_cursors (
   account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   kind TEXT NOT NULL CHECK(kind IN ('like', 'save', 'repost', 'manual')),
@@ -122,3 +140,6 @@ CREATE TRIGGER IF NOT EXISTS sources_au AFTER UPDATE ON sources BEGIN
   INSERT INTO sources_fts(rowid, text, author_handle, author_name, canonical_url, evidence_text)
   VALUES (new.id, new.text, new.author_handle, new.author_name, new.canonical_url, new.evidence_text);
 END;
+
+INSERT OR IGNORE INTO schema_migrations (version, applied_at)
+VALUES (2, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));

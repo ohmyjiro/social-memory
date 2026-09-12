@@ -101,3 +101,40 @@ test('MCP exposes only four read-only tools and serves structured retrieval', as
   }, context);
   assert.equal(rejected.error.code, -32601);
 });
+
+test('CLI exposes backup, restore, scheduler, and agent scaffold workflows', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'social-memory-operations-'));
+  const dataDir = join(root, 'source library');
+  const restoredDir = join(root, 'restored library');
+  const backupDir = join(root, 'backup bundle');
+  const agentDir = join(root, 'agent setup');
+  const env = { SOCIAL_MEMORY_DATA_DIR: dataDir };
+  const output = captureOutput();
+  await runCli(['init', '--data-dir', dataDir], { env: {}, stdout: output });
+  await runCli([
+    'connector', 'configure', 'fixture',
+    '--account', 'fictional_reader',
+    '--include', 'save',
+  ], { env, stdout: output });
+  await runCli(['sync'], { env, stdout: output });
+
+  const installed = await runCli(['schedule', 'install', '--interval-minutes', '60'], {
+    env,
+    stdout: output,
+    scheduleManager: {
+      install: async ({ intervalMinutes }) => ({ status: 'installed', intervalMinutes }),
+    },
+  });
+  const backup = await runCli(['backup', 'create', '--output', backupDir], { env, stdout: output });
+  const restored = await runCli([
+    'backup', 'restore', '--from', backupDir, '--data-dir', restoredDir,
+  ], { env: {}, stdout: output });
+  const agent = await runCli([
+    'agent', 'scaffold', '--client', 'codex', '--output', agentDir,
+  ], { env, stdout: output });
+
+  assert.deepEqual(installed, { status: 'installed', intervalMinutes: 60 });
+  assert.equal(backup.status, 'created');
+  assert.equal(restored.status, 'restored');
+  assert.equal(agent.status, 'created');
+});

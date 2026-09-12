@@ -107,6 +107,7 @@ test('content-addressed evidence stores duplicate bytes once', async (t) => {
   assert.equal(firstObject.objectPath, secondObject.objectPath);
   assert.equal(await readFile(join(config.dataDir, firstObject.objectPath), 'utf8'), await readFile(fixtureFile, 'utf8'));
   assert.equal((await stat(join(config.dataDir, firstObject.objectPath))).isFile(), true);
+  assert.equal((await stat(join(config.dataDir, firstObject.objectPath))).mode & 0o777, 0o600);
 
   const result = await ingestCaptureBatch(
     db,

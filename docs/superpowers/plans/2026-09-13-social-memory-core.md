@@ -4,7 +4,7 @@
 
 **Goal:** Build an offline-testable Social Memory core that preserves distinct like/save/repost captures, copies local Evidence into a content-addressed library, supports exact filtered search, and exposes read-only MCP tools.
 
-**Architecture:** A dependency-free Node.js 22.5+ CLI owns a SQLite library and a registry of connector objects. The first slice ships only a synthetic fixture connector; X and Threads remain later packages behind the same verified account/kind/cursor contract. Domain modules are independent of CLI and MCP rendering.
+**Architecture:** A dependency-free Node.js 22.16+ CLI owns a SQLite library and a registry of connector objects. The first slice ships only a synthetic fixture connector; X and Threads remain later packages behind the same verified account/kind/cursor contract. Domain modules are independent of CLI and MCP rendering.
 
 **Tech Stack:** Node.js ESM, built-in `node:sqlite`, `node:test`, SQLite FTS5, JSON-RPC MCP over stdio.
 
@@ -14,7 +14,7 @@
 
 ## Global Constraints
 
-- Require Node.js 22.5 or newer and add no production dependency.
+- Require Node.js 22.16 or newer and add no production dependency.
 - Keep runtime data outside the repository and use mode `0700` directories and mode `0600` configuration/database files where supported.
 - Treat `like`, `save`, `repost`, and `manual` as distinct canonical capture kinds; X bookmark and Threads saved map to `save` while retaining `nativeKind`.
 - Require a non-empty explicit `selectedCaptureKinds` subset per account and never delete old captures when the selection changes.
