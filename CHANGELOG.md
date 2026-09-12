@@ -26,3 +26,4 @@ All notable changes to Social Memory will be documented here.
 - Rejected symbolic-link database/config targets and preserved loaded agents when unload fails.
 - Added conditional `doctor` diagnostics for the Aside CLI when a browser-backed connector is configured.
 - Added portable GitHub Release artifacts with basename-only SHA-256 manifests.
+- Extended packed-artifact verification through generated Codex setup and installed stdio MCP discovery.

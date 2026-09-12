@@ -81,6 +81,36 @@ const sync = JSON.parse(run(executable, ['sync', '--json'], { env }).stdout);
 if (sync.status !== 'success' || sync.streams.length !== 2) {
   throw new Error('Installed fixture sync did not preserve two selected streams');
 }
+const agentDir = join(workDir, 'agent setup');
+const agent = JSON.parse(run(executable, [
+  'agent', 'scaffold', '--client', 'codex', '--output', agentDir, '--json',
+], { env }).stdout);
+if (agent.status !== 'created' || agent.client !== 'codex') {
+  throw new Error('Installed CLI did not create a Codex agent scaffold');
+}
+const [generatedSkill, generatedMcpConfig] = await Promise.all([
+  readFile(join(agentDir, 'skills', 'social-memory', 'SKILL.md'), 'utf8'),
+  readFile(join(agentDir, 'mcp.toml'), 'utf8'),
+]);
+if (!generatedSkill.startsWith('---\nname: social-memory\n')) {
+  throw new Error('Installed agent scaffold did not include the Social Memory Skill');
+}
+if (!generatedMcpConfig.includes(dataDir) || !generatedMcpConfig.includes('social-memory')) {
+  throw new Error('Installed agent scaffold did not resolve its MCP paths');
+}
+
+const mcpInput = [
+  { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+  { jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} },
+].map((request) => JSON.stringify(request)).join('\n') + '\n';
+const mcpRun = run(executable, ['mcp'], { env, input: mcpInput });
+if (mcpRun.stderr !== '') throw new Error(`Installed MCP emitted stderr: ${mcpRun.stderr.trim()}`);
+const mcpResponses = mcpRun.stdout.trim().split('\n').map((line) => JSON.parse(line));
+const mcpTools = mcpResponses
+  .find(({ id }) => id === 2)
+  ?.result?.tools?.map(({ name }) => name);
+if (!Array.isArray(mcpTools)) throw new Error('Installed MCP did not return its tool list');
+
 const digest = createHash('sha256').update(await readFile(tarball)).digest('hex');
 process.stdout.write(`${JSON.stringify({
   status: 'ready',
@@ -89,4 +119,6 @@ process.stdout.write(`${JSON.stringify({
   files: files.length,
   installedVersion: version.stdout.trim(),
   license: packageManifest.license,
+  agentScaffold: agent.client,
+  mcpTools,
 }, null, 2)}\n`);

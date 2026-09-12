@@ -159,3 +159,23 @@ test('release artifact builder writes a portable checksum using only the tarball
 
   assert.equal(checksum, `${digest}  ${filename}\n`);
 });
+
+test('release check exercises agent scaffolding and MCP from the installed tarball', () => {
+  const result = spawnSync(process.execPath, [
+    'scripts/release-check.mjs',
+    '--allow-unlicensed',
+  ], {
+    cwd: new URL('../', import.meta.url),
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.agentScaffold, 'codex');
+  assert.deepEqual(report.mcpTools, [
+    'search_sources',
+    'get_source',
+    'list_capture_kinds',
+    'get_health',
+  ]);
+});
