@@ -104,3 +104,5 @@ The release is not complete if only fixture tests pass. Live X and Threads probe
 | Automation | manual-sync receipt gate plus LaunchAgent integration test |
 | Agent use | generated Skill validation and MCP initialize/tools/call smoke |
 | Release readiness | clean Git tree, CI green, license present, changelog and signed artifact checksums |
+
+The CI matrix tests the declared minimum Node.js version (`22.16.0`) rather than only the latest `22.x`, plus the current Node.js 24 line.
