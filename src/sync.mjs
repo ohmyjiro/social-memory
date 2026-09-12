@@ -55,6 +55,10 @@ export async function runSync({
   clock = () => new Date(),
 }) {
   if (!['manual', 'scheduled'].includes(trigger)) throw new Error(`Unknown sync trigger: ${trigger}`);
+  const normalizedLimit = Number(limit);
+  if (!Number.isInteger(normalizedLimit) || normalizedLimit < 1) {
+    throw new Error('limit must be a positive integer');
+  }
   const streams = [];
 
   for (const account of listAccounts(db)) {
@@ -129,7 +133,7 @@ export async function runSync({
           account,
           kind,
           cursor: currentCursor,
-          limit,
+          limit: normalizedLimit,
           verification,
         });
         if (!collected || !Array.isArray(collected.events)) {

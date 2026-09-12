@@ -19,11 +19,12 @@ async function createTestContext(t, connector) {
   return { config, db, registry: createConnectorRegistry([connector]) };
 }
 
-function createObservedConnector({ calls, failKind, authenticatedIdentity } = {}) {
+function createObservedConnector({ calls, verificationCalls, failKind, authenticatedIdentity } = {}) {
   return {
     id: 'fixture',
     capabilities: ['like', 'save', 'repost'],
     async verify({ account }) {
+      verificationCalls?.push(account.configuredIdentity);
       return {
         status: 'ready',
         configuredIdentity: account.configuredIdentity,
@@ -128,4 +129,21 @@ test('sync with no matching streams is not reported as success', async (t) => {
   const summary = await runSync({ db, config, registry });
 
   assert.deepEqual(summary, { status: 'no_streams', streams: [] });
+});
+
+test('an invalid sync limit is rejected before account verification', async (t) => {
+  const verificationCalls = [];
+  const connector = createObservedConnector({ verificationCalls });
+  const { config, db, registry } = await createTestContext(t, connector);
+  configureAccount(db, registry, {
+    connectorId: 'fixture',
+    identity: 'reader_one',
+    selectedCaptureKinds: ['like'],
+  });
+
+  await assert.rejects(
+    runSync({ db, config, registry, limit: 'not-a-number' }),
+    /limit must be a positive integer/i,
+  );
+  assert.deepEqual(verificationCalls, []);
 });
