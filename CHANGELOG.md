@@ -28,3 +28,8 @@ All notable changes to Social Memory will be documented here.
 - Added portable GitHub Release artifacts with basename-only SHA-256 manifests.
 - Extended packed-artifact verification through generated Codex setup and installed stdio MCP discovery.
 - Made macOS-only scheduler operations fail before filesystem or process access on unsupported platforms.
+- Added isolated system-Chrome profiles and Chrome-backed X/Threads connectors while keeping Aside optional.
+- Rejected dot and symlink Chrome profile targets; revalidated account, final route, and visible collection headings during collection.
+- Added bounded loading retries and post-ID resume cursors, with explicit failure when the resume anchor disappears.
+- Removed the POSIX user-ID requirement from general CLI initialization; scheduling remains macOS-only.
+- Added real-Chrome offline DOM regression tests and clarified unverified live-collection boundaries.

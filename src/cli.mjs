@@ -3,6 +3,7 @@
 import { pathToFileURL } from 'node:url';
 import { readFileSync, statSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
 
 import { configureAccount, listAccounts } from './accounts.mjs';
 import { scaffoldAgentIntegration } from './agent-scaffold.mjs';
@@ -11,8 +12,14 @@ import { CAPTURE_KINDS } from './capture-kinds.mjs';
 import { initializeLibrary, loadConfig } from './config.mjs';
 import { fixtureConnector } from './connectors/fixture.mjs';
 import { importConnector } from './connectors/import.mjs';
-import { threadsConnector } from './connectors/threads.mjs';
-import { xAsideConnector } from './connectors/x-aside.mjs';
+import { createThreadsConnector, threadsConnector } from './connectors/threads.mjs';
+import {
+  createChromeThreadsBridge,
+  createChromeXBridge,
+  createChromeSession,
+  openChromeProfile as openChromeProfileInBrowser,
+} from './connectors/chrome.mjs';
+import { createXAsideConnector, xAsideConnector } from './connectors/x-aside.mjs';
 import { xConnector } from './connectors/x.mjs';
 import { createConnectorRegistry } from './connectors/registry.mjs';
 import { openDatabase } from './db.mjs';
@@ -36,6 +43,7 @@ Commands:
   connector list [--json]
   connector configure <connector> --account <identity> --include like,save,repost [--profile-ref <id>] [--json]
   connector status [--json]
+  browser open --profile-ref <id> --url <http-or-https-url> [--json]
   schedule readiness [--json]
   schedule install --interval-minutes <n> [--json]
   schedule status [--json]
@@ -59,7 +67,7 @@ function parseArguments(args) {
     '--data-dir', '--account', '--include', '--connector', '--kind', '--since', '--limit', '--file',
     '--credential-env', '--profile-ref', '--keychain-service', '--keychain-user',
     '--interval-minutes',
-    '--output', '--from', '--client',
+    '--output', '--from', '--client', '--url',
   ]);
   for (let index = 0; index < args.length; index += 1) {
     const token = args[index];
@@ -183,11 +191,19 @@ export async function runCli(args, {
     fixtureConnector,
     importConnector,
     xConnector,
+    createXAsideConnector({
+      id: 'x-chrome',
+      browserBridge: createChromeXBridge({ session: createChromeSession({ env }) }),
+      bookmarkLandmark: 'bookmarks_state',
+      bookmarkItemLandmark: 'post_permalink',
+    }),
     xAsideConnector,
+    createThreadsConnector({ id: 'threads-chrome', browserBridge: createChromeThreadsBridge({ session: createChromeSession({ env }) }) }),
     threadsConnector,
   ]),
   scheduleManager = createLaunchAgentManager(),
   commandAvailable = executableAvailable,
+  openChromeProfile = openChromeProfileInBrowser,
 } = {}) {
   const { positional, options } = parseArguments(args);
   const [command, subcommand, subject] = positional;
@@ -217,6 +233,17 @@ export async function runCli(args, {
   }
 
   const config = loadConfig(env);
+  if (command === 'browser' && subcommand === 'open') {
+    if (!options.profile_ref) throw new Error('--profile-ref is required');
+    if (!options.url) throw new Error('--url is required');
+    const result = await openChromeProfile({
+      profileRoot: join(config.dataDir, 'chrome-profiles'),
+      profileRef: options.profile_ref,
+      url: options.url,
+    });
+    emit(stdout, result, options.json);
+    return result;
+  }
   if (command === 'doctor') {
     const result = doctor(config, commandAvailable);
     emit(stdout, result, options.json);

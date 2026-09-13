@@ -35,6 +35,36 @@ test('--version reads the package version without requiring a library', async ()
   assert.equal(output.read().trim(), packageJson.version);
 });
 
+test('browser open creates a dedicated Chrome profile and opens the requested login page', async () => {
+  const parent = await mkdtemp(join(tmpdir(), 'social-memory-browser-open-'));
+  const dataDir = join(parent, 'library');
+  const env = { SOCIAL_MEMORY_DATA_DIR: dataDir };
+  const output = captureOutput();
+  const opens = [];
+
+  await runCli(['init', '--data-dir', dataDir, '--json'], { env: {}, stdout: output.stream });
+  const result = await runCli([
+    'browser', 'open',
+    '--profile-ref', 'reader-one',
+    '--url', 'https://www.threads.com/',
+    '--json',
+  ], {
+    env,
+    stdout: output.stream,
+    openChromeProfile: async (input) => {
+      opens.push(input);
+      return { status: 'closed', profileRef: input.profileRef };
+    },
+  });
+
+  assert.equal(result.status, 'closed');
+  assert.deepEqual(opens, [{
+    profileRoot: join(dataDir, 'chrome-profiles'),
+    profileRef: 'reader-one',
+    url: 'https://www.threads.com/',
+  }]);
+});
+
 test('doctor distinguishes an uninitialized path from a ready versioned library', async () => {
   const parent = await mkdtemp(join(tmpdir(), 'social-memory-doctor-'));
   const dataDir = join(parent, 'not initialized');
@@ -118,6 +148,8 @@ test('package manifest is publish-shaped and uses an explicit file allowlist', a
     'examples/',
     'schemas/',
     'README.md',
+    'README.ko.md',
+    'assets/readme/',
     'CHANGELOG.md',
     'SECURITY.md',
   ]);

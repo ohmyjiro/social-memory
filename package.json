@@ -26,6 +26,8 @@
     "examples/",
     "schemas/",
     "README.md",
+    "README.ko.md",
+    "assets/readme/",
     "CHANGELOG.md",
     "SECURITY.md"
   ],
@@ -37,6 +39,9 @@
   },
   "engines": {
     "node": ">=22.16"
+  },
+  "dependencies": {
+    "playwright-core": "^1.63.0"
   },
   "scripts": {
     "test": "node --disable-warning=ExperimentalWarning --test",

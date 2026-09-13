@@ -14,7 +14,7 @@ function connectorError(code, message) {
 
 function requireProfileRef(value) {
   if (typeof value !== 'string' || !/^[A-Za-z0-9._-]+$/.test(value)) {
-    throw new Error('X Aside profile reference must use only letters, numbers, dot, underscore, or hyphen');
+    throw new Error('X browser profile reference must use only letters, numbers, dot, underscore, or hyphen');
   }
   return value;
 }
@@ -149,9 +149,14 @@ function mapItem(item, kind) {
   };
 }
 
-export function createXAsideConnector({ browserBridge = createAsideXBridge() } = {}) {
+export function createXAsideConnector({
+  id = 'x-aside',
+  browserBridge = createAsideXBridge(),
+  bookmarkLandmark = 'bookmarks_api',
+  bookmarkItemLandmark = 'post_identity',
+} = {}) {
   return Object.freeze({
-    id: 'x-aside',
+    id,
     capabilities: Object.freeze(['like', 'save', 'repost']),
     normalizeProfileRef: requireProfileRef,
     normalizeConfig(value) {
@@ -182,8 +187,8 @@ export function createXAsideConnector({ browserBridge = createAsideXBridge() } =
         throw connectorError('connector_drift', 'X Aside bridge response is incomplete');
       }
       const landmarks = new Set(result.landmarks);
-      const surfaceLandmark = surface === 'bookmarks' ? 'bookmarks_api' : `${surface}_state`;
-      const itemLandmark = surface === 'bookmarks' ? 'post_identity' : 'post_permalink';
+      const surfaceLandmark = surface === 'bookmarks' ? bookmarkLandmark : `${surface}_state`;
+      const itemLandmark = surface === 'bookmarks' ? bookmarkItemLandmark : 'post_permalink';
       if (!landmarks.has(surfaceLandmark) || (!landmarks.has(itemLandmark) && !landmarks.has('empty_state'))) {
         throw connectorError('connector_drift', `X ${surface} landmarks changed`);
       }

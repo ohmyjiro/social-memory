@@ -159,14 +159,14 @@ function mapItem(item, kind) {
   };
 }
 
-export function createThreadsConnector({ browserBridge = createAsideThreadsBridge() } = {}) {
+export function createThreadsConnector({ id = 'threads', browserBridge = createAsideThreadsBridge() } = {}) {
   return Object.freeze({
-    id: 'threads',
+    id,
     capabilities: Object.freeze(['like', 'save', 'repost']),
     normalizeProfileRef: requireProfileRef,
     normalizeConfig(value) {
       const key = Object.keys(value)[0];
-      if (key) throw new Error(`Unknown Threads connector config field: ${key}`);
+      if (key) throw new Error(`Unknown ${id} connector config field: ${key}`);
       return {};
     },
     async verify({ account }) {
@@ -181,7 +181,7 @@ export function createThreadsConnector({ browserBridge = createAsideThreadsBridg
         connectorState: { profileUrl: identity.profileUrl ?? null },
       };
     },
-    async collect({ account, kind, cursor, limit }) {
+    async collect({ account, kind, cursor, limit, verification }) {
       const surface = SURFACE_BY_KIND[kind];
       if (!surface) throw connectorError('invalid_capture_kind', `Unsupported Threads capture kind: ${kind}`);
       const result = await browserBridge.readSurface({
@@ -189,6 +189,7 @@ export function createThreadsConnector({ browserBridge = createAsideThreadsBridg
         surface,
         cursor,
         limit,
+        ...(id === 'threads-chrome' ? { handle: verification?.authenticatedIdentity } : {}),
       });
       if (!result || !Array.isArray(result.items) || !Array.isArray(result.landmarks)) {
         throw connectorError('connector_drift', 'Threads bridge response is incomplete');

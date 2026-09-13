@@ -87,6 +87,42 @@ test('X Aside verifies one profile and reads only the selected native surface', 
   );
 });
 
+test('X browser connector accepts Chrome bookmark landmarks under its own connector id', async (t) => {
+  const browserBridge = fakeBridge();
+  browserBridge.readSurface = async (input) => ({
+    items: [{
+      postId: 'chrome-bookmark',
+      sourceUrl: 'https://x.com/writer/status/chrome-bookmark',
+      authorHandle: 'writer',
+      authorName: null,
+      text: 'Chrome bookmark',
+      postedAt: '2026-09-01T00:00:00.000Z',
+      assets: [],
+    }],
+    cursor: null,
+    landmarks: ['bookmarks_state', 'post_permalink'],
+  });
+  const connector = createXAsideConnector({
+    id: 'x-chrome',
+    browserBridge,
+    bookmarkLandmark: 'bookmarks_state',
+    bookmarkItemLandmark: 'post_permalink',
+  });
+  const { config, db, registry } = await context(t, connector);
+  configureAccount(db, registry, {
+    connectorId: 'x-chrome',
+    identity: 'reader_one',
+    profileRef: 'reader-one',
+    selectedCaptureKinds: ['save'],
+  });
+
+  const result = await runSync({ db, config, registry });
+
+  assert.equal(connector.id, 'x-chrome');
+  assert.equal(result.status, 'success');
+  assert.equal(db.prepare('SELECT native_kind FROM captures').get().native_kind, 'bookmark');
+});
+
 test('X Aside preserves like and save as distinct captures for a shared source', async (t) => {
   const connector = createXAsideConnector({ browserBridge: fakeBridge() });
   const { config, db, registry } = await context(t, connector);

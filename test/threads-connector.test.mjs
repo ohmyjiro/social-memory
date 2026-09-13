@@ -88,6 +88,13 @@ test('Threads sync verifies the dedicated profile and reads only selected captur
   );
 });
 
+test('Threads browser connector can be registered under the Chrome connector id', () => {
+  const connector = createThreadsConnector({ id: 'threads-chrome', browserBridge: bridge() });
+
+  assert.equal(connector.id, 'threads-chrome');
+  assert.deepEqual(connector.capabilities, ['like', 'save', 'repost']);
+});
+
 test('Threads keeps like and save as distinct captures of one source', async (t) => {
   const connector = createThreadsConnector({ browserBridge: bridge() });
   const { config, db, registry } = await createContext(t, connector);

@@ -122,12 +122,12 @@ export function createLaunchAgentManager({
   pathValue = process.env.PATH ?? '/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin',
   execFileImpl = execFile,
 } = {}) {
-  if (!Number.isInteger(uid)) throw new Error('A numeric macOS user id is required');
 
   function requireSupportedPlatform() {
     if (platform !== 'darwin') {
       throw scheduleError('unsupported_platform', 'LaunchAgent scheduling is available only on macOS');
     }
+    if (!Number.isInteger(uid)) throw new Error('A numeric macOS user id is required');
   }
 
   function paths(config) {
