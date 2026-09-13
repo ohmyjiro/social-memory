@@ -9,6 +9,35 @@ import { initializeLibrary, loadConfig } from '../src/config.mjs';
 import { createConnectorRegistry } from '../src/connectors/registry.mjs';
 import { openDatabase } from '../src/db.mjs';
 import { runSync } from '../src/sync.mjs';
+import { createFixtureConnector } from '../src/connectors/fixture.mjs';
+import { searchSources } from '../src/search.mjs';
+
+for (const [selected, expected] of [
+  [['save'], ['both', 'saved-only']],
+  [['like'], ['both', 'liked-only']],
+  [['like', 'save'], ['both', 'liked-only', 'saved-only']],
+]) {
+  test(`collection eligibility is OR over ${selected.join(',')} and search returns each post once`, async t => {
+    const event = (id, kind) => ({externalId:id,canonicalUrl:`https://example.test/posts/${id}`,
+      text:`Selection example ${id}`,capture:{kind,nativeKind:kind},evidence:[]});
+    const streams = {
+      like:{events:[event('liked-only','like'),event('both','like')],nextCursor:null},
+      save:{events:[event('saved-only','save'),event('both','save')],nextCursor:null},
+    };
+    const connector = createFixtureConnector({streams});
+    const context = await createTestContext(t, connector);
+    configureAccount(context.db, context.registry, {
+      connectorId:'fixture', identity:'fictional_reader', selectedCaptureKinds:selected,
+    });
+    for (let run = 0; run < 2; run++) {
+      assert.equal((await runSync(context)).status, 'success');
+      const found = searchSources(context.db, {query:'Selection example'});
+      assert.deepEqual(found.map(item=>item.externalId).sort(), expected);
+      assert.equal(context.db.prepare('SELECT COUNT(*) AS n FROM sources').get().n, expected.length);
+      assert.deepEqual(found.find(item=>item.externalId==='both').captureKinds, selected);
+    }
+  });
+}
 
 async function createTestContext(t, connector) {
   const dataDir = await mkdtemp(join(tmpdir(), 'social-memory-sync-'));

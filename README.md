@@ -1,3 +1,5 @@
+![Social Memory: fictional X and Threads posts with highlighted likes and bookmarks connect to source-linked AI ideas.](assets/readme/social-memory-hero.png)
+
 # Social Memory
 
 **Your X (Twitter) bookmarks and Threads saves. Ready for your next idea.**
@@ -5,8 +7,6 @@
 [English](README.md) · [한국어](README.ko.md)
 
 Collect the posts you like, bookmark, and repost on **X (Twitter) and Threads** into a searchable local library. Then ask **Codex or Claude Code** to find implementation notes, compare marketing ideas, or help shape your next project—with links back to the originals.
-
-![Social Memory: selected social signals flow into a local library; a connected AI assistant retrieves evidence and produces answers.](assets/readme/workflow.en.svg)
 
 > **Development preview.** Local CLI + SQLite + read-only MCP. Chrome collection is implemented and tested against local HTML, but live account collection is not yet verified. Licensing terms are under review; the package remains `UNLICENSED`.
 
@@ -23,7 +23,6 @@ Collect the posts you like, bookmark, and repost on **X (Twitter) and Threads** 
 You decide which signals to collect for each account. Liking something and bookmarking it are separate choices—and stay separate in the library.
 
 ## See the everyday workflow
-
 
 1. **Save as usual.** Bookmark an implementation tip on X. Save a marketing example on Threads.
 2. **Collect on your Mac.** After initial login and a successful trial sync, configure a collection interval. The local library retains what the connector retrieves.
@@ -57,6 +56,8 @@ These are example prompts, not sample results or built-in automatic reports.
 
 ## Keep the context, not just the link
 
+![Collection, local library, and assistant retrieval](assets/readme/workflow.en.svg)
+
 - **Preserve your intent.** Likes, bookmarks, reposts, and manual imports stay separate.
 - **Keep a local library.** SQLite stores sources and capture history; file evidence is stored by content hash.
 - **Use your existing assistant.** Codex or Claude Code retrieves evidence through read-only MCP. The assistant handles grouping, summaries, and synthesis.
@@ -67,7 +68,15 @@ The archive stays local. Evidence returned to a cloud-connected assistant can le
 
 ![One source can have separate like and bookmark capture records, with supporting text or files.](assets/readme/evidence.en.svg)
 
-A post you both like and bookmark is one source with two capture records **within the same connector**. Disabling bookmark collection later does not delete previous records. Using multiple connectors for the same platform can create duplicate sources.
+**Likes and bookmarks are collection filters. A post qualifies if it matches ANY selected filter. A post matching both is stored once and appears once in search.**
+
+| Your selection | Liked only | Bookmarked only | Both |
+| --- | --- | --- | --- |
+| Bookmarks only (`--include save`) | Excluded | Collected | Collected once |
+| Likes only (`--include like`) | Collected | Excluded | Collected once |
+| Both (`--include like,save`) | Collected | Collected | Collected once |
+
+Use likes to show appreciation and bookmarks to mark research? Select **bookmarks only**. Prefer collecting likes instead? Select likes only. Internal metadata records why a post qualified; it does not create a separate post copy for each reaction. Changing filters does not automatically delete previously archived posts.
 
 ## Try the local demo
 
@@ -214,6 +223,8 @@ social-memory upgrade --json
 See the [import schema](schemas/capture-export-v1.schema.json) and [synthetic example](examples/import.v1.json). Imported evidence files must be relative to, and contained beneath, the export’s directory. Backups verify hashes; restore creates a new directory rather than overwriting an existing library. Browser sessions are excluded—log in again after moving machines.
 
 ## Current limits
+
+- **Multiple collection routes:** The deduplication above applies within your selected connector. Registering the same SNS account through Chrome, Aside, and the API simultaneously can still duplicate sources across routes. Use one route per account; this is a separate unresolved limitation from like/bookmark selection.
 
 - **Platforms:** macOS is the primary tested host; Linux is in core CI coverage. Windows CLI initialization was corrected, but Windows end-to-end operation is unverified. Scheduling is macOS-only.
 - **Browser changes:** Chrome requires supported Korean/English headings and page structure. X/Threads can change these. A successful local test does not prove a live account works.
