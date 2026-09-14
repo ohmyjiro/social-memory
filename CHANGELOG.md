@@ -2,6 +2,16 @@
 
 All notable changes to Social Memory will be documented here.
 
+## 0.2.0 - Unreleased
+
+- Added an unpacked Manifest V3 extension for collecting selected X and Threads likes, saves, and reposts from an everyday Chrome profile.
+- Added a user-scoped Native Messaging bridge for macOS and Linux without exporting cookies, passwords, or tokens.
+- Made the signed-in handle the verified account identity and kept per-profile installation IDs as transport scope only.
+- Added single-profile setup by default and one-click connection for each additional Chrome profile, without typed profile IDs.
+- Preserved one Source per platform post when multiple profiles or capture signals collect the same post.
+- Added once-daily best-effort extension collection while Chrome is running; alarms may be delayed and do not wake sleeping devices.
+- Kept the extension unpacked and Windows Native Messaging installation unverified in this release.
+
 ## 0.1.0 - 2026-09-14
 
 - Added the local SQLite Source, Capture, and Evidence model.

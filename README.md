@@ -1,4 +1,4 @@
-![Social Memory: fictional X and Threads posts with highlighted likes and bookmarks connect to source-linked AI ideas.](assets/readme/social-memory-hero.png)
+![Two Chrome profiles collect selected X and Threads signals through a secure local bridge into one searchable Social Memory library.](assets/readme/social-memory-extension-guide.png)
 
 # Social Memory
 
@@ -8,7 +8,7 @@
 
 Collect the posts you like, bookmark, and repost on **X (Twitter) and Threads** into a searchable local library. Then ask **Codex or Claude Code** to find implementation notes, compare marketing ideas, or help shape your next project—with links back to the originals.
 
-> **Development preview.** Local CLI + SQLite + read-only MCP. Chrome collection is implemented and tested against local HTML, but live account collection is not yet verified. Source is available under the PolyForm Perimeter License 1.0.1.
+> **Development preview.** Unpacked Chrome extension + local CLI + SQLite + read-only MCP. The extension and Chrome DOM collection are tested locally, but live X/Threads account collection is not yet verified. Source is available under the PolyForm Perimeter License 1.0.1.
 
 [Try the local demo](#try-the-local-demo) · [Connect an account](#connect-an-account) · [Ask your assistant](#ask-your-assistant) · [Current limits](#current-limits)
 
@@ -25,11 +25,11 @@ You decide which signals to collect for each account. If one post matches more t
 ## See the everyday workflow
 
 1. **Save as usual.** Bookmark an implementation tip on X. Save a marketing example on Threads.
-2. **Collect on your Mac.** After initial login and a successful trial sync, configure a collection interval. The local library retains what the connector retrieves.
+2. **Connect the Chrome profile you already use.** Select likes, saves, and/or reposts in the extension. Your signed-in handle is detected automatically—no profile ID or password export.
 3. **Ask where you work.** In your connected Codex or Claude Code session, ask: “Find useful ideas from last week’s X bookmarks and Threads saves for my new app. Cite the sources.”
 4. **Go back to the evidence.** Open the original links, compare approaches, and ask the assistant to turn the findings into an experiment or implementation plan.
 
-This is an **illustrative workflow**, not a recorded live demo. Results depend on the material collected; Chrome live-account coverage still needs verification.
+Results depend on the material collected; live-account coverage still needs verification.
 
 | Your task | Example prompt |
 | --- | --- |
@@ -78,7 +78,7 @@ The archive stays local. Evidence returned to a cloud-connected assistant can le
 
 Use likes to show appreciation and bookmarks to mark research? Select **bookmarks only**. Prefer collecting likes instead? Select likes only. Internal metadata records why a post qualified; it does not create a separate post copy for each reaction. Changing filters does not automatically delete previously archived posts.
 
-The same platform post is also stored once when it arrives through different declared routes, such as Chrome, Aside, an API, or a future extension connector.
+The same platform post is also stored once when it arrives through different declared routes, such as the extension, CLI Chrome connector, Aside, or an API.
 
 ## Try the local demo
 
@@ -113,7 +113,42 @@ Set this environment variable again in each new terminal, or put it in your shel
 
 ## Connect an account
 
-Install Google Chrome first. Social Memory uses `playwright-core` to launch it; no separate browser download is needed.
+### Recommended: connect your everyday Chrome profile
+
+Install the project and initialize a fresh library first:
+
+```bash
+cd /path/to/social-memory
+npm install --ignore-scripts
+npm install --global .
+
+export SOCIAL_MEMORY_DATA_DIR="$HOME/social-memory-data"
+social-memory init --data-dir "$SOCIAL_MEMORY_DATA_DIR" --json
+```
+
+Then connect Chrome:
+
+1. Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**, and select this repository's `extension` folder.
+2. Copy the 32-letter extension ID shown by Chrome.
+3. Install the private local bridge:
+
+   ```bash
+   social-memory extension install-host \
+     --extension-id YOUR_EXTENSION_ID --json
+   ```
+
+4. Open X or Threads in that Chrome profile, sign in normally, click **Social Memory**, choose Likes, Saves, and/or Reposts, then click **Connect profile**.
+5. Click **Collect now** for the first bounded collection. The extension detects the handle from the open site; you never type an account or profile ID into Social Memory.
+
+Most people need only those steps. For another Chrome profile, load the same unpacked `extension` folder in that profile and click **Connect profile** once. Each profile keeps its own installation state, while a post collected more than once is still one Source in the local library.
+
+The once-daily toggle is best effort: Chrome must be running, alarms can be delayed, and the extension does not wake a sleeping device. Use the macOS CLI scheduler below when collection must run without an everyday Chrome window.
+
+Native Messaging host installation is currently implemented for macOS and Linux. The unpacked extension and Windows host installation remain unverified on Windows.
+
+### Advanced: dedicated automation profile
+
+The CLI can launch an isolated Chrome profile instead of reusing everyday Chrome. Install Google Chrome first; `playwright-core` controls the installed browser without downloading another one.
 
 ### Threads with Chrome
 
@@ -140,7 +175,7 @@ social-memory sync --connector x-chrome --kind save --limit 3 --json
 
 Select only what you want: `like`, `save`, `repost`. Check the configured and authenticated identities with `social-memory connector status --json`. Browser collection rejects account mismatches and missing supported page markers.
 
-Most people can stop there. For a second account, choose a local profile name explicitly and use it for both commands:
+For a second dedicated automation account, choose a local profile name explicitly and use it for both commands:
 
 ```bash
 social-memory browser open threads --profile-ref threads-work
@@ -152,7 +187,8 @@ social-memory connector connect threads-chrome \
 
 | Connector | Needs | Status |
 | --- | --- | --- |
-| `threads-chrome`, `x-chrome` | Installed Chrome + isolated login | Offline DOM tests; live collection unverified |
+| Chrome extension | Everyday Chrome login + local Native Messaging host | Unit/DOM tests; live collection unverified |
+| `threads-chrome`, `x-chrome` | Installed Chrome + isolated automation login | Offline DOM tests; live collection unverified |
 | `threads`, `x-aside` | Aside CLI + dedicated Aside account ID | Prior small live probes; ongoing coverage not guaranteed |
 | `x` | Authorized user OAuth token | API contract tested offline; live probe pending |
 | `import` | JSON export | Local import tests |
@@ -230,11 +266,11 @@ See the [import schema](schemas/capture-export-v1.schema.json) and [synthetic ex
 
 - **Fresh library required:** This development schema intentionally has no migration layer. A library created by an older schema is rejected without conversion; point `SOCIAL_MEMORY_DATA_DIR` at a new directory.
 
-- **Platforms:** macOS is the primary tested host; Linux is in core CI coverage. Windows CLI initialization was corrected, but Windows end-to-end operation is unverified. Scheduling is macOS-only.
+- **Platforms:** Native Messaging installation supports macOS and Linux. macOS is the primary tested host; Linux is in core CI coverage. Windows CLI initialization works, but extension-host and end-to-end operation are unverified. CLI scheduling is macOS-only.
 - **Browser changes:** Chrome requires supported Korean/English headings and page structure. X/Threads can change these. A successful local test does not prove a live account works.
 - **Coverage:** Chrome resumes using a post ID. Missing anchors fail explicitly. End-of-list detection is heuristic; complete history is not guaranteed. New posts are revisited after the current history pass ends.
 - **Media:** Imported files can be preserved. Browser connectors currently record available media metadata/links; full automatic media downloading, OCR, PDF text extraction, and video transcription are not implemented.
-- **Interface:** CLI and agent integration. No desktop GUI, setup wizard, hosted service, or Naver Blog connector.
+- **Interface:** unpacked Chrome extension, CLI, and agent integration. No Chrome Web Store release, desktop GUI, hosted service, or Naver Blog connector.
 
 ## Development and license
 

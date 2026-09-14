@@ -1,4 +1,4 @@
-![가상의 트위터와 스레드 게시물에서 좋아요·저장한 자료를 AI 아이디어로 연결하는 Social Memory.](assets/readme/social-memory-hero.png)
+![두 Chrome 프로필에서 선택한 X와 Threads 활동을 안전한 로컬 브리지로 보내 하나의 검색 가능한 Social Memory 자료실에 보관하는 흐름](assets/readme/social-memory-extension-guide.png)
 
 # Social Memory
 
@@ -8,7 +8,7 @@
 
 **X(트위터)와 Threads(스레드)**에서 좋아요·북마크·리포스트한 글을 내 컴퓨터에 모아두세요. **Codex나 Claude Code**에게 “지난주 저장한 글 중 앱에 쓸 아이디어 찾아줘”라고 물으면, 연결된 자료실에서 근거를 찾아 원문 링크와 함께 활용할 수 있습니다.
 
-> **개발 프리뷰입니다.** 로컬 CLI + SQLite + 읽기 전용 MCP로 구성됩니다. Chrome 수집은 구현 및 로컬 HTML 테스트를 마쳤지만 실계정 수집은 아직 미검증입니다. 소스는 PolyForm Perimeter License 1.0.1로 공개됩니다.
+> **개발 프리뷰입니다.** 압축 해제형 Chrome 확장 + 로컬 CLI + SQLite + 읽기 전용 MCP로 구성됩니다. 확장과 Chrome DOM 수집은 로컬 테스트를 마쳤지만 X/Threads 실계정 수집은 아직 미검증입니다. 소스는 PolyForm Perimeter License 1.0.1로 공개됩니다.
 
 [로컬 데모 실행](#로컬-데모-실행) · [계정 연결](#계정-연결) · [AI에게 질문](#ai에게-질문) · [현재-한계](#현재-한계)
 
@@ -25,11 +25,11 @@
 ## 실제로는 이렇게 사용합니다
 
 1. **평소처럼 저장합니다.** 트위터에서 구현 팁을 북마크하고, 스레드에서 눈에 들어온 마케팅 사례를 저장합니다.
-2. **Mac에서 모아둡니다.** 처음 로그인하고 시험 수집에 성공한 뒤 수집 간격을 설정합니다. 커넥터가 가져온 자료가 로컬 자료실에 쌓입니다.
+2. **평소 쓰는 Chrome 프로필을 연결합니다.** 확장에서 좋아요·저장·리포스트 중 원하는 것만 고릅니다. 로그인 핸들은 자동 확인하므로 프로필 ID나 비밀번호를 내보내지 않습니다.
 3. **작업하던 AI에게 묻습니다.** 연결된 Codex나 Claude Code에서 “지난주 트위터 북마크랑 스레드 저장 글 중 새 앱에 쓸 아이디어를 추려줘. 출처도 붙여줘”라고 요청합니다.
 4. **원문을 보며 구체화합니다.** 링크를 열어 근거를 확인하고, 비교한 결과를 실험안이나 구현 계획으로 발전시킵니다.
 
-위 흐름은 **이해를 돕기 위한 사용 예시**이며 실계정 녹화 데모가 아닙니다. 결과는 실제 수집된 자료에 따라 달라지고, Chrome 실계정 수집 범위는 아직 검증이 필요합니다.
+결과는 실제 수집된 자료에 따라 달라지고, 실계정 수집 범위는 아직 검증이 필요합니다.
 
 | 지금 하는 일 | 질문 예시 |
 | --- | --- |
@@ -78,7 +78,7 @@ AI 연결 후에는 이렇게 물어보세요.
 
 “좋아요는 그냥 공감 표시로 쓰고, 다시 볼 글만 북마크한다”면 **북마크만** 선택하면 됩니다. 반대로 좋아요만 수집 대상으로 삼아도 됩니다. 내부에는 수집된 이유를 붙여둘 뿐, 반응 종류별로 게시물 사본을 만들지는 않습니다. 수집 조건을 변경해도 이미 보관한 글은 자동 삭제되지 않습니다.
 
-같은 플랫폼의 게시물이 Chrome·Aside·API 또는 향후 확장 커넥터처럼 서로 다른 경로로 들어와도 한 개로 보관합니다.
+같은 플랫폼의 게시물이 확장·CLI Chrome 커넥터·Aside·API처럼 서로 다른 경로로 들어와도 한 개로 보관합니다.
 
 ## 로컬 데모 실행
 
@@ -113,7 +113,42 @@ social-memory init --data-dir "$SOCIAL_MEMORY_DATA_DIR" --json
 
 ## 계정 연결
 
-Google Chrome을 먼저 설치하세요. `playwright-core`로 설치된 Chrome을 실행하므로 별도 브라우저 다운로드는 필요하지 않습니다.
+### 권장: 평소 쓰는 Chrome 프로필 연결
+
+먼저 프로젝트를 설치하고 새 자료실을 만듭니다.
+
+```bash
+cd /path/to/social-memory
+npm install --ignore-scripts
+npm install --global .
+
+export SOCIAL_MEMORY_DATA_DIR="$HOME/social-memory-data"
+social-memory init --data-dir "$SOCIAL_MEMORY_DATA_DIR" --json
+```
+
+이제 Chrome을 연결합니다.
+
+1. `chrome://extensions`를 열고 **개발자 모드**를 켠 뒤 **압축해제된 확장 프로그램을 로드합니다**를 눌러 이 저장소의 `extension` 폴더를 선택합니다.
+2. Chrome에 표시된 영문 32자의 확장 프로그램 ID를 복사합니다.
+3. 내 컴퓨터 안에서만 통신하는 브리지를 설치합니다.
+
+   ```bash
+   social-memory extension install-host \
+     --extension-id YOUR_EXTENSION_ID --json
+   ```
+
+4. 그 Chrome 프로필에서 X 또는 Threads를 열어 평소처럼 로그인합니다. **Social Memory**를 누르고 좋아요·저장·리포스트 중 원하는 항목을 고른 뒤 **Connect profile**을 누릅니다.
+5. 첫 소량 수집은 **Collect now**로 실행합니다. 열린 사이트에서 로그인 핸들을 자동 확인하므로 Social Memory에 계정명이나 프로필 ID를 입력하지 않습니다.
+
+대부분은 이것으로 끝입니다. Chrome 프로필이 더 있다면 같은 `extension` 폴더를 해당 프로필에도 로드하고 **Connect profile**만 한 번 누르세요. 프로필별 설치 상태는 따로 유지하고, 같은 게시물이 여러 번 들어와도 로컬 자료실에는 원문 한 개로 보관합니다.
+
+하루 1회 옵션은 최선형 예약입니다. Chrome이 실행 중이어야 하고 알람이 늦어질 수 있으며, 잠든 기기를 깨우지 않습니다. 일상 Chrome 창과 무관하게 실행해야 한다면 아래 macOS CLI 스케줄러를 사용하세요.
+
+Native Messaging 호스트 설치는 현재 macOS와 Linux를 지원합니다. Windows의 압축 해제형 확장과 호스트 설치는 아직 검증하지 않았습니다.
+
+### 고급: 전용 자동화 프로필
+
+CLI는 평소 쓰는 Chrome 대신 격리된 자동화 프로필을 실행할 수 있습니다. Google Chrome을 먼저 설치하세요. `playwright-core`가 설치된 Chrome을 제어하므로 별도 브라우저 다운로드는 필요하지 않습니다.
 
 ### Chrome으로 Threads 연결
 
@@ -140,7 +175,7 @@ social-memory sync --connector x-chrome --kind save --limit 3 --json
 
 `like`는 좋아요, `save`는 저장/북마크, `repost`는 리포스트입니다. 원하는 항목만 선택하세요. `social-memory connector status --json`으로 등록한 계정과 확인된 로그인 계정을 조회합니다. 계정이 다르거나 지원하는 화면 표식이 없으면 수집을 중단합니다.
 
-대부분은 여기까지만 하면 됩니다. 두 번째 계정을 연결할 때만 로컬 프로필 이름을 정해 두 명령에 같이 넣습니다.
+두 번째 전용 자동화 계정을 연결할 때는 로컬 프로필 이름을 정해 두 명령에 같이 넣습니다.
 
 ```bash
 social-memory browser open threads --profile-ref threads-work
@@ -152,7 +187,8 @@ social-memory connector connect threads-chrome \
 
 | 커넥터 | 필요한 것 | 현재 검증 범위 |
 | --- | --- | --- |
-| `threads-chrome`, `x-chrome` | Chrome + 전용 프로필 로그인 | 로컬 DOM 테스트, 실계정 미검증 |
+| Chrome 확장 | 평소 쓰는 Chrome 로그인 + 로컬 Native Messaging 호스트 | 단위/DOM 테스트, 실계정 미검증 |
+| `threads-chrome`, `x-chrome` | Chrome + 전용 자동화 프로필 로그인 | 로컬 DOM 테스트, 실계정 미검증 |
 | `threads`, `x-aside` | Aside CLI + 전용 Aside 계정 ID | 과거 소량 실계정 확인, 지속 동작 보장 아님 |
 | `x` | 사용자 OAuth 토큰 | API 계약 오프라인 테스트, 실계정 확인 대기 |
 | `import` | 정해진 형식의 JSON | 로컬 가져오기 테스트 |
@@ -229,11 +265,11 @@ social-memory backup restore --from "$HOME/social-memory-backup" \
 
 - **새 자료실 필요:** 이 개발 스키마에는 의도적으로 마이그레이션 계층이 없습니다. 이전 스키마로 만든 자료실은 변환하지 않고 거부하므로 `SOCIAL_MEMORY_DATA_DIR`을 새 폴더로 지정해야 합니다.
 
-- **운영체제:** macOS 우선 검증, Linux 코어 CI 포함. Windows CLI 초기화는 수정했지만 실기기 전체 흐름은 미검증입니다. 스케줄러는 macOS 전용입니다.
+- **운영체제:** Native Messaging 설치는 macOS와 Linux를 지원합니다. macOS 우선 검증, Linux 코어 CI 포함입니다. Windows CLI 초기화는 동작하지만 확장 호스트와 전체 흐름은 미검증입니다. CLI 스케줄러는 macOS 전용입니다.
 - **화면 변경:** Chrome은 지원하는 한국어/영어 제목과 DOM 구조가 필요합니다. X/Threads가 화면을 바꾸면 수집이 중단될 수 있습니다.
 - **수집 범위:** Chrome은 게시물 ID로 이어받습니다. 기준 게시물이 없어지면 명시적으로 실패합니다. 목록 끝 판단은 추정 방식으로, 전체 과거 기록 수집은 보장하지 않습니다. 최신 글은 현재 과거 목록 순회를 마친 뒤 다시 확인합니다.
 - **미디어:** 가져온 파일은 보관할 수 있습니다. 브라우저는 현재 확보 가능한 미디어 메타데이터와 링크를 기록합니다. 전체 자동 다운로드, OCR, PDF 본문 추출, 영상 전사는 미구현입니다.
-- **사용 화면:** CLI와 AI 연결을 제공합니다. 데스크톱 GUI, 설정 마법사, 호스팅 서비스, 네이버 블로그 커넥터는 없습니다.
+- **사용 화면:** 압축 해제형 Chrome 확장, CLI, AI 연결을 제공합니다. Chrome Web Store 배포, 데스크톱 GUI, 호스팅 서비스, 네이버 블로그 커넥터는 없습니다.
 
 ## 개발과 라이선스
 
