@@ -241,6 +241,7 @@ test('failed and empty sync results produce a non-zero process exit code', () =>
 test('package manifest is publish-shaped and uses an explicit file allowlist', async () => {
   const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url)));
 
+  assert.equal(packageJson.version, '0.2.0');
   assert.notEqual(packageJson.private, true);
   assert.equal(packageJson.license, 'SEE LICENSE IN LICENSE.md');
   assert.deepEqual(packageJson.files, [
@@ -283,7 +284,7 @@ test('source-available license is included and passes the public release check',
   assert.equal(JSON.parse(result.stdout).license, 'SEE LICENSE IN LICENSE.md');
 });
 
-test('release artifact builder writes a portable checksum using only the tarball name', async () => {
+test('release artifact builder writes CLI and extension artifacts with portable checksums', async () => {
   const outputDir = await mkdtemp(join(tmpdir(), 'social-memory-release-artifacts-'));
   const result = spawnSync(process.execPath, ['scripts/build-release-artifacts.mjs', outputDir], {
     cwd: new URL('../', import.meta.url),
@@ -293,11 +294,21 @@ test('release artifact builder writes a portable checksum using only the tarball
 
   const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url)));
   const filename = `${packageJson.name}-${packageJson.version}.tgz`;
+  const extensionFilename = `social-memory-extension-${packageJson.version}.zip`;
   const tarball = await readFile(join(outputDir, filename));
+  const extensionZip = await readFile(join(outputDir, extensionFilename));
   const digest = createHash('sha256').update(tarball).digest('hex');
+  const extensionDigest = createHash('sha256').update(extensionZip).digest('hex');
   const checksum = await readFile(join(outputDir, 'SHA256SUMS'), 'utf8');
 
-  assert.equal(checksum, `${digest}  ${filename}\n`);
+  assert.equal(checksum, `${digest}  ${filename}\n${extensionDigest}  ${extensionFilename}\n`);
+  const tarList = spawnSync('tar', ['-tzf', join(outputDir, filename)], { encoding: 'utf8' });
+  assert.equal(tarList.status, 0, tarList.stderr);
+  assert.match(tarList.stdout, /^package\/extension\/manifest\.json$/m);
+  assert.match(tarList.stdout, /^package\/assets\/readme\/social-memory-extension-guide\.png$/m);
+  const zipList = spawnSync('unzip', ['-Z1', join(outputDir, extensionFilename)], { encoding: 'utf8' });
+  assert.equal(zipList.status, 0, zipList.stderr);
+  assert.match(zipList.stdout, /^manifest\.json$/m);
 });
 
 test('release check exercises agent scaffolding and MCP from the installed tarball', () => {

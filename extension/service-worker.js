@@ -240,7 +240,9 @@ export function createController({
   async function collectConnectedPlatforms() {
     for (const platform of ['x', 'threads']) {
       const settings = (await storage.get(settingsKey(platform)))[settingsKey(platform)];
-      if (settings?.connected) await collect(platform, settings.selectedCaptureKinds, 100, settings.handle);
+      if (!settings?.connected) continue;
+      try { await collect(platform, settings.selectedCaptureKinds, 100, settings.handle); }
+      catch (error) { console.error(`Social Memory ${platform} collection failed:`, error); }
     }
   }
 

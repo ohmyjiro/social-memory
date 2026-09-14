@@ -45,7 +45,7 @@ test('backup and restore preserve the database in a new path with spaces', async
   const manifest = JSON.parse(await readFile(join(backupDir, 'manifest.json'), 'utf8'));
   assert.equal(manifest.format, 'social-memory-backup');
   assert.equal(manifest.version, 1);
-  assert.equal(manifest.schemaVersion, 3);
+  assert.equal(manifest.schemaVersion, 4);
   assert.ok(manifest.files.every(({ sha256 }) => /^[a-f0-9]{64}$/.test(sha256)));
 });
 

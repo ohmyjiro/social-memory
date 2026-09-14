@@ -93,3 +93,23 @@ test('startup recreates the daily alarm from persisted settings', async () => {
   assert.equal(created[0].name, 'social-memory-daily');
   assert.equal(created[0].options.periodInMinutes, 1440);
 });
+
+test('one failing daily platform does not prevent the other platform collection', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  const local = storage();
+  await local.set({
+    'social-memory:settings:x': { connected: true, handle: 'reader_x', selectedCaptureKinds: ['save'] },
+    'social-memory:settings:threads': { connected: true, handle: 'reader_threads', selectedCaptureKinds: ['save'] },
+  });
+  const attempts = [];
+  const controller = createController({
+    storage: local,
+    alarms: { async create() {}, async clear() {} },
+    collect: async (platform) => {
+      attempts.push(platform);
+      if (platform === 'x') throw new Error('X unavailable');
+    },
+  });
+  await controller.collectConnectedPlatforms();
+  assert.deepEqual(attempts, ['x', 'threads']);
+});

@@ -2,7 +2,7 @@
 
 All notable changes to Social Memory will be documented here.
 
-## 0.2.0 - Unreleased
+## 0.2.0 - 2026-09-14
 
 - Added an unpacked Manifest V3 extension for collecting selected X and Threads likes, saves, and reposts from an everyday Chrome profile.
 - Added a user-scoped Native Messaging bridge for macOS and Linux without exporting cookies, passwords, or tokens.
