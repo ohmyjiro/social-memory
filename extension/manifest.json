@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Social Memory",
+  "description": "Collect selected X and Threads activity into your private local library.",
+  "version": "0.2.0",
+  "permissions": [
+    "alarms",
+    "nativeMessaging",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://twitter.com/*",
+    "https://threads.com/*",
+    "https://*.threads.com/*"
+  ],
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Social Memory"
+  },
+  "incognito": "not_allowed"
+}

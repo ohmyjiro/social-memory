@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Social Memory</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <span class="mark" aria-hidden="true">S</span>
+    <div><h1>Social Memory</h1><p id="identity">Checking this profile…</p></div>
+  </header>
+  <main>
+    <p id="host" class="status" role="status">Checking local bridge…</p>
+    <fieldset>
+      <legend>Collect from this profile</legend>
+      <label>Likes <input type="checkbox" name="capture-kind" value="like"></label>
+      <label>Saves <input type="checkbox" name="capture-kind" value="save" checked></label>
+      <label>Reposts <input type="checkbox" name="capture-kind" value="repost"></label>
+    </fieldset>
+    <div class="actions">
+      <button id="connect" type="button">Connect profile</button>
+      <button id="collect-now" class="secondary" type="button">Collect now</button>
+    </div>
+    <label class="daily"><input id="daily" type="checkbox"> Collect once daily while Chrome is running</label>
+    <p id="result" class="result" role="status" aria-live="polite"></p>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
