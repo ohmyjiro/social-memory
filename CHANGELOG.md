@@ -33,3 +33,7 @@ All notable changes to Social Memory will be documented here.
 - Added bounded loading retries and post-ID resume cursors, with explicit failure when the resume anchor disappears.
 - Removed the POSIX user-ID requirement from general CLI initialization; scheduling remains macOS-only.
 - Added real-Chrome offline DOM regression tests and clarified unverified live-collection boundaries.
+- Made the normal Chrome setup path discover the signed-in handle and use one default profile per platform.
+- Kept explicit profile names as an optional multi-account path instead of a single-account requirement.
+- Deduplicated sources by platform and external post ID across Chrome, Aside, API, and declared extension routes.
+- Rejected legacy libraries without conversion and removed the misleading upgrade command.

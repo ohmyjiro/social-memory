@@ -32,6 +32,7 @@ function mapSummary(db, row, accountId) {
   const captures = captureRows(db, row.id, accountId);
   return {
     id: row.id,
+    platform: row.platform,
     connectorId: row.connector_id,
     externalId: row.external_id,
     canonicalUrl: row.canonical_url,
@@ -60,13 +61,15 @@ export function searchSources(db, options = {}) {
     clauses.push('sources_fts MATCH ?');
     params.push(expression);
   }
+  const captureClauses = [];
+  const captureParams = [];
   if (options.connectorId) {
-    clauses.push('sources.connector_id = ?');
-    params.push(options.connectorId);
+    captureClauses.push('filtered_accounts.connector_id = ?');
+    captureParams.push(options.connectorId);
   }
   if (options.accountId !== undefined && options.accountId !== null) {
-    clauses.push('EXISTS (SELECT 1 FROM captures ac WHERE ac.source_id = sources.id AND ac.account_id = ?)');
-    params.push(Number(options.accountId));
+    captureClauses.push('filtered_captures.account_id = ?');
+    captureParams.push(Number(options.accountId));
   }
   if (options.kinds !== undefined) {
     if (!Array.isArray(options.kinds) || options.kinds.length === 0) {
@@ -75,12 +78,18 @@ export function searchSources(db, options = {}) {
     for (const kind of options.kinds) {
       if (!CAPTURE_KINDS.includes(kind)) throw new Error(`Unknown capture kind: ${kind}`);
     }
+    captureClauses.push(`filtered_captures.kind IN (${options.kinds.map(() => '?').join(', ')})`);
+    captureParams.push(...options.kinds);
+  }
+  if (captureClauses.length > 0) {
     clauses.push(`EXISTS (
-      SELECT 1 FROM captures kc
-      WHERE kc.source_id = sources.id
-        AND kc.kind IN (${options.kinds.map(() => '?').join(', ')})
+      SELECT 1
+      FROM captures filtered_captures
+      JOIN accounts filtered_accounts ON filtered_accounts.id = filtered_captures.account_id
+      WHERE filtered_captures.source_id = sources.id
+        AND ${captureClauses.join(' AND ')}
     )`);
-    params.push(...options.kinds);
+    params.push(...captureParams);
   }
   if (options.since) {
     const timestamp = Date.parse(options.since);
@@ -140,6 +149,7 @@ export function getSource(db, sourceId) {
 
   return {
     id: row.id,
+    platform: row.platform,
     connectorId: row.connector_id,
     externalId: row.external_id,
     canonicalUrl: row.canonical_url,

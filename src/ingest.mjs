@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 import { CAPTURE_KINDS } from './capture-kinds.mjs';
 import { storeObject } from './evidence-store.mjs';
+import { platformForConnector } from './platform.mjs';
 
 function requireString(value, field) {
   if (typeof value !== 'string' || value.trim().length === 0) {
@@ -99,14 +100,14 @@ export async function ingestCaptureBatch(db, config, account, kind, events) {
   try {
     for (const event of normalized) {
       const existingSource = db
-        .prepare('SELECT id FROM sources WHERE connector_id = ? AND external_id = ?')
-        .get(account.connectorId, event.externalId);
+        .prepare('SELECT id FROM sources WHERE platform = ? AND external_id = ?')
+        .get(account.platform ?? platformForConnector(account.connectorId), event.externalId);
       const source = db.prepare(`
         INSERT INTO sources (
-          connector_id, external_id, canonical_url, author_handle, author_name,
+          platform, connector_id, external_id, canonical_url, author_handle, author_name,
           text, source_created_at, first_collected_at, last_seen_at, raw_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(connector_id, external_id) DO UPDATE SET
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(platform, external_id) DO UPDATE SET
           canonical_url = COALESCE(excluded.canonical_url, sources.canonical_url),
           author_handle = COALESCE(excluded.author_handle, sources.author_handle),
           author_name = COALESCE(excluded.author_name, sources.author_name),
@@ -116,6 +117,7 @@ export async function ingestCaptureBatch(db, config, account, kind, events) {
           raw_json = excluded.raw_json
         RETURNING id
       `).get(
+        account.platform ?? platformForConnector(account.connectorId),
         account.connectorId,
         event.externalId,
         event.canonicalUrl,

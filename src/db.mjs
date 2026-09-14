@@ -22,8 +22,17 @@ function rejectUnsafeDatabasePath(path) {
 export function openDatabase(dbPath) {
   rejectUnsafeDatabasePath(dbPath);
   const db = new DatabaseSync(dbPath);
-  db.exec('PRAGMA foreign_keys = ON;');
-  db.exec('PRAGMA journal_mode = WAL;');
-  db.exec(schema);
+  try {
+    if (db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='sources'").get() &&
+      !db.prepare('PRAGMA table_info(sources)').all().some((column) => column.name === 'platform')) {
+      throw new Error('Legacy library is unsupported; use a new data directory. Existing data was not converted.');
+    }
+    db.exec('PRAGMA foreign_keys = ON;');
+    db.exec('PRAGMA journal_mode = WAL;');
+    db.exec(schema);
+  } catch (error) {
+    db.close();
+    throw error;
+  }
   return db;
 }

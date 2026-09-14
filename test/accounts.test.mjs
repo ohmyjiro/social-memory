@@ -43,6 +43,17 @@ test('account setup requires an explicit valid capture selection', async (t) => 
     () => configureAccount(db, registry, { ...base, selectedCaptureKinds: ['manual'] }),
     /does not support/i,
   );
+  assert.throws(
+    () => configureAccount(db, createConnectorRegistry([
+      fixtureConnector,
+      { id: 'x', capabilities: ['save'] },
+    ]), {
+      connectorId: 'x',
+      identity: '@',
+      selectedCaptureKinds: ['save'],
+    }),
+    /identity is required/i,
+  );
 });
 
 test('account configuration rejects secret-shaped connector data', async (t) => {
@@ -88,11 +99,11 @@ test('reconfiguration changes future selection without deleting old captures', a
   const now = '2026-09-13T00:00:00.000Z';
   const source = db.prepare(`
     INSERT INTO sources (
-      connector_id, external_id, canonical_url, text,
+      platform, connector_id, external_id, canonical_url, text,
       first_collected_at, last_seen_at, raw_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     RETURNING id
-  `).get('fixture', 'shared-post', 'https://example.test/shared-post', 'Shared post', now, now, '{}');
+  `).get('fixture', 'fixture', 'shared-post', 'https://example.test/shared-post', 'Shared post', now, now, '{}');
   db.prepare(`
     INSERT INTO captures (
       account_id, source_id, kind, native_kind,

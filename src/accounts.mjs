@@ -1,4 +1,5 @@
 import { validateCaptureKinds } from './capture-kinds.mjs';
+import { normalizedIdentity, platformForConnector } from './platform.mjs';
 
 function selectedKindsForAccount(db, accountId) {
   return db
@@ -20,6 +21,9 @@ function selectedKindsForAccount(db, accountId) {
 function mapAccount(db, row) {
   return {
     id: row.id,
+    connectionId: row.id,
+    identityId: row.identity_id,
+    platform: db.prepare('SELECT platform FROM identities WHERE id=?').get(row.identity_id).platform,
     connectorId: row.connector_id,
     configuredIdentity: row.configured_identity,
     profileRef: row.profile_ref,
@@ -59,7 +63,9 @@ export function configureAccount(db, registry, input) {
     throw new Error('Account identity is required');
   }
 
-  const identity = input.identity.trim();
+  const platform = connector.platform ?? platformForConnector(connector.id);
+  const identity = normalizedIdentity(platform, input.identity);
+  if (!identity) throw new Error('Account identity is required');
   if (typeof connector.normalizeProfileRef === 'function') {
     const existingProfileRef = db.prepare(`
       SELECT profile_ref
@@ -76,6 +82,12 @@ export function configureAccount(db, registry, input) {
 
   db.exec('BEGIN IMMEDIATE');
   try {
+    const platformIdentity = db.prepare(`
+      INSERT INTO identities (platform, handle)
+      VALUES (?, ?)
+      ON CONFLICT(platform, handle) DO UPDATE SET handle = excluded.handle
+      RETURNING id
+    `).get(platform, identity);
     db.prepare(`
       INSERT INTO connectors (id, capabilities_json, created_at)
       VALUES (?, ?, ?)
@@ -85,8 +97,8 @@ export function configureAccount(db, registry, input) {
     const row = db.prepare(`
       INSERT INTO accounts (
         connector_id, configured_identity, profile_ref, status,
-        config_json, created_at, updated_at
-      ) VALUES (?, ?, ?, 'unverified', ?, ?, ?)
+        config_json, created_at, updated_at, identity_id
+      ) VALUES (?, ?, ?, 'unverified', ?, ?, ?, ?)
       ON CONFLICT(connector_id, configured_identity) DO UPDATE SET
         profile_ref = COALESCE(excluded.profile_ref, accounts.profile_ref),
         config_json = CASE
@@ -102,6 +114,7 @@ export function configureAccount(db, registry, input) {
       connectorConfigJson ?? '{}',
       now,
       now,
+      platformIdentity.id,
       connectorConfigJson ?? null,
     );
 
@@ -117,6 +130,36 @@ export function configureAccount(db, registry, input) {
     db.exec('ROLLBACK');
     throw error;
   }
+}
+
+// Called by trusted local adapters, never directly by a page-supplied identity message.
+export async function connectAccount(db, registry, input) {
+  const connector = registry.get(input.connectorId);
+  validateCaptureKinds(input.selectedCaptureKinds, connector.capabilities);
+  validateConnectorConfig(connector, input.connectorConfig);
+  const profileRef = typeof connector.normalizeProfileRef === 'function'
+    ? connector.normalizeProfileRef(input.profileRef)
+    : input.profileRef ?? null;
+  const verification = await connector.verify({
+    account: {
+      connectorId: connector.id,
+      profileRef,
+      connectorConfig: input.connectorConfig ?? {},
+    },
+  });
+  if (verification?.status !== 'ready' || !verification.authenticatedIdentity?.trim()) {
+    const error = new Error('Connector could not verify the signed-in account');
+    error.code = 'verification_failed';
+    throw error;
+  }
+  const identity = normalizedIdentity(
+    connector.platform ?? platformForConnector(connector.id),
+    verification.authenticatedIdentity,
+  );
+  const result = configureAccount(db, registry, { ...input, identity, profileRef });
+  db.prepare('UPDATE accounts SET status = ?, authenticated_identity = ? WHERE id = ?')
+    .run('ready', identity, result.id);
+  return { ...result, status: 'ready', authenticatedIdentity: identity };
 }
 
 export function listAccounts(db) {

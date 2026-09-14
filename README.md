@@ -20,7 +20,7 @@ Collect the posts you like, bookmark, and repost on **X (Twitter) and Threads** 
 | **Threads** | Likes · saved posts · reposts | “Compare the marketing ideas I saved last week.” |
 | **Your JSON exports** | Imported posts and supporting files | “Find references relevant to this project.” |
 
-You decide which signals to collect for each account. Liking something and bookmarking it are separate choices—and stay separate in the library.
+You decide which signals to collect for each account. If one post matches more than one selected signal, Social Memory stores the post once and keeps the reasons as metadata.
 
 ## See the everyday workflow
 
@@ -66,7 +66,7 @@ These are example prompts, not sample results or built-in automatic reports.
 
 The archive stays local. Evidence returned to a cloud-connected assistant can leave your machine under that assistant’s settings. Social Memory does not require its own LLM API key; your assistant’s usage limits and any source API charges still apply.
 
-![One source can have separate like and bookmark capture records, with supporting text or files.](assets/readme/evidence.en.svg)
+![One source keeps its like and bookmark reasons with supporting text or files.](assets/readme/evidence.en.svg)
 
 **Likes and bookmarks are collection filters. A post qualifies if it matches ANY selected filter. A post matching both is stored once and appears once in search.**
 
@@ -77,6 +77,8 @@ The archive stays local. Evidence returned to a cloud-connected assistant can le
 | Both (`--include like,save`) | Collected | Collected | Collected once |
 
 Use likes to show appreciation and bookmarks to mark research? Select **bookmarks only**. Prefer collecting likes instead? Select likes only. Internal metadata records why a post qualified; it does not create a separate post copy for each reaction. Changing filters does not automatically delete previously archived posts.
+
+The same platform post is also stored once when it arrives through different declared routes, such as Chrome, Aside, an API, or a future extension connector.
 
 ## Try the local demo
 
@@ -116,32 +118,35 @@ Install Google Chrome first. Social Memory uses `playwright-core` to launch it; 
 ### Threads with Chrome
 
 ```bash
-# Choose a new profile name. Log in in the opened window, then close it.
-social-memory browser open \
-  --profile-ref threads-reader --url https://www.threads.com/
+# Log in in the opened window, then close it.
+social-memory browser open threads
 
-# Replace reader_handle with the exact handle you logged into.
-social-memory connector configure threads-chrome \
-  --account reader_handle --profile-ref threads-reader \
-  --include like,save,repost --json
+# The connector reads the signed-in handle. No account name or profile ID is needed.
+social-memory connector connect threads-chrome --include save --json
 
 # Begin with a small collection.
 social-memory sync --connector threads-chrome --kind save --limit 3 --json
 ```
 
-`threads-reader` is a name you choose—not an ID you obtain elsewhere. Each account needs its own profile. Chrome stores it under `SOCIAL_MEMORY_DATA_DIR/chrome-profiles/`; your everyday Chrome profile is not reused.
+This uses the isolated `threads-default` profile under `SOCIAL_MEMORY_DATA_DIR/chrome-profiles/`; your everyday Chrome profile is not reused. The signed-in handle is discovered and stored only after verification succeeds.
 
 ### X with Chrome
 
 ```bash
-social-memory browser open --profile-ref x-reader --url https://x.com/home
-social-memory connector configure x-chrome \
-  --account reader_handle --profile-ref x-reader \
-  --include like,save,repost --json
+social-memory browser open x
+social-memory connector connect x-chrome --include save --json
 social-memory sync --connector x-chrome --kind save --limit 3 --json
 ```
 
 Select only what you want: `like`, `save`, `repost`. Check the configured and authenticated identities with `social-memory connector status --json`. Browser collection rejects account mismatches and missing supported page markers.
+
+Most people can stop there. For a second account, choose a local profile name explicitly and use it for both commands:
+
+```bash
+social-memory browser open threads --profile-ref threads-work
+social-memory connector connect threads-chrome \
+  --profile-ref threads-work --include save --json
+```
 
 ### Other connectors
 
@@ -153,7 +158,7 @@ Select only what you want: `like`, `save`, `repost`. Check the configured and au
 | `import` | JSON export | Local import tests |
 | `fixture` | Nothing external | Synthetic installation demo |
 
-For Aside, run `aside account list` and use the intended account ID (for example, `u1`) as `--profile-ref`. Verify which SNS account is logged into it. Use `threads` or `x-aside` in `connector configure`; these existing IDs continue to select Aside.
+For Aside, run `aside account list` and use the intended account ID (for example, `u1`) as `--profile-ref`. Verify which SNS account is logged into it, then run `connector connect threads --profile-ref u1 --include save` or use `x-aside` for X.
 
 For the X API, make a user OAuth token available securely through an environment variable, then configure its **name**, not its value:
 
@@ -217,14 +222,13 @@ social-memory doctor --json
 social-memory backup create --output "$HOME/social-memory-backup" --json
 social-memory backup restore --from "$HOME/social-memory-backup" \
   --data-dir "$HOME/social-memory-restored" --json
-social-memory upgrade --json
 ```
 
 See the [import schema](schemas/capture-export-v1.schema.json) and [synthetic example](examples/import.v1.json). Imported evidence files must be relative to, and contained beneath, the export’s directory. Backups verify hashes; restore creates a new directory rather than overwriting an existing library. Browser sessions are excluded—log in again after moving machines.
 
 ## Current limits
 
-- **Multiple collection routes:** The deduplication above applies within your selected connector. Registering the same SNS account through Chrome, Aside, and the API simultaneously can still duplicate sources across routes. Use one route per account; this is a separate unresolved limitation from like/bookmark selection.
+- **Fresh library required:** This development schema intentionally has no migration layer. A library created by an older schema is rejected without conversion; point `SOCIAL_MEMORY_DATA_DIR` at a new directory.
 
 - **Platforms:** macOS is the primary tested host; Linux is in core CI coverage. Windows CLI initialization was corrected, but Windows end-to-end operation is unverified. Scheduling is macOS-only.
 - **Browser changes:** Chrome requires supported Korean/English headings and page structure. X/Threads can change these. A successful local test does not prove a live account works.
@@ -243,7 +247,7 @@ npm run package:check
 SOCIAL_MEMORY_CHROME_TEST=1 node --test test/chrome-safety.test.mjs
 ```
 
-The latest local verification passed 81 tests including the opt-in Chrome DOM tests. This is test evidence, not a live-service availability claim.
+Run the commands above to verify the current checkout. Passing local and Chrome DOM tests is not a live-service availability claim.
 
 The core keeps **Source / Capture / Evidence** separate; connectors provide normalized records; the assistant owns interpretation. Review [security boundaries](SECURITY.md) and the [changelog](CHANGELOG.md) before changing collection behavior. Keep real account data, profiles, and credentials outside the repository.
 

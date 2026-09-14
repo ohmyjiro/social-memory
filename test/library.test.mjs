@@ -41,6 +41,7 @@ test('initialization creates a private library and the complete core schema', as
     'collection_runs',
     'connectors',
     'evidence',
+    'identities',
     'manual_sync_receipts',
     'objects',
     'sources',
@@ -59,6 +60,10 @@ test('initialization creates a private library and the complete core schema', as
     .map(({ name }) => name);
 
   assert.deepEqual(actualTables, expectedTables);
+  assert.deepEqual(
+    db.prepare('SELECT version FROM schema_migrations ORDER BY version').all().map(({ version }) => version),
+    [3],
+  );
   assert.equal(db.prepare('PRAGMA foreign_keys').get().foreign_keys, 1);
 });
 

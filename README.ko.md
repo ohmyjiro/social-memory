@@ -20,7 +20,7 @@
 | **Threads(스레드)** | 좋아요 · 저장한 글 · 리포스트 | “지난주 저장한 마케팅 아이디어 비교해줘.” |
 | **내 JSON 내보내기 파일** | 게시물과 첨부 근거 파일 | “이 프로젝트에 참고할 자료를 찾아줘.” |
 
-계정마다 수집할 항목을 고릅니다. 좋아요만 모아도 되고 북마크만 모아도 됩니다. 둘 다 선택해도 기록은 따로 남습니다.
+계정마다 수집할 항목을 고릅니다. 좋아요만 모아도 되고 북마크만 모아도 됩니다. 둘 다 선택한 글은 원문 한 개로 보관하고, 수집된 이유만 구별해 둡니다.
 
 ## 실제로는 이렇게 사용합니다
 
@@ -78,6 +78,8 @@ AI 연결 후에는 이렇게 물어보세요.
 
 “좋아요는 그냥 공감 표시로 쓰고, 다시 볼 글만 북마크한다”면 **북마크만** 선택하면 됩니다. 반대로 좋아요만 수집 대상으로 삼아도 됩니다. 내부에는 수집된 이유를 붙여둘 뿐, 반응 종류별로 게시물 사본을 만들지는 않습니다. 수집 조건을 변경해도 이미 보관한 글은 자동 삭제되지 않습니다.
 
+같은 플랫폼의 게시물이 Chrome·Aside·API 또는 향후 확장 커넥터처럼 서로 다른 경로로 들어와도 한 개로 보관합니다.
+
 ## 로컬 데모 실행
 
 **Node.js 22.16 이상**이 필요합니다. 아래는 macOS/Linux 셸 기준이며, 로컬에 받은 소스 폴더에서 시작합니다. 공개 npm 배포를 전제로 하지 않습니다.
@@ -116,32 +118,35 @@ Google Chrome을 먼저 설치하세요. `playwright-core`로 설치된 Chrome�
 ### Chrome으로 Threads 연결
 
 ```bash
-# 새 프로필 이름을 정합니다. 열린 창에서 로그인한 뒤 창을 닫으세요.
-social-memory browser open \
-  --profile-ref threads-reader --url https://www.threads.com/
+# 열린 창에서 로그인한 뒤 창을 닫으세요.
+social-memory browser open threads
 
-# reader_handle을 실제 로그인한 계정의 핸들로 바꿉니다.
-social-memory connector configure threads-chrome \
-  --account reader_handle --profile-ref threads-reader \
-  --include like,save,repost --json
+# 로그인된 계정을 자동 확인하므로 계정명이나 프로필 ID를 입력하지 않습니다.
+social-memory connector connect threads-chrome --include save --json
 
 # 처음에는 소량만 확인합니다.
 social-memory sync --connector threads-chrome --kind save --limit 3 --json
 ```
 
-`threads-reader`는 직접 정하는 이름입니다. 다른 곳에서 ID를 발급받을 필요가 없습니다. 계정마다 다른 이름을 사용하세요. 전용 프로필은 `SOCIAL_MEMORY_DATA_DIR/chrome-profiles/`에 생기며 평소 사용하는 Chrome 프로필과 분리됩니다.
+기본값인 `threads-default` 전용 프로필을 `SOCIAL_MEMORY_DATA_DIR/chrome-profiles/` 아래에 사용합니다. 평소 쓰는 Chrome 프로필과 분리되며, 로그인 계정 확인에 성공한 뒤에만 핸들을 등록합니다.
 
 ### Chrome으로 X 연결
 
 ```bash
-social-memory browser open --profile-ref x-reader --url https://x.com/home
-social-memory connector configure x-chrome \
-  --account reader_handle --profile-ref x-reader \
-  --include like,save,repost --json
+social-memory browser open x
+social-memory connector connect x-chrome --include save --json
 social-memory sync --connector x-chrome --kind save --limit 3 --json
 ```
 
 `like`는 좋아요, `save`는 저장/북마크, `repost`는 리포스트입니다. 원하는 항목만 선택하세요. `social-memory connector status --json`으로 등록한 계정과 확인된 로그인 계정을 조회합니다. 계정이 다르거나 지원하는 화면 표식이 없으면 수집을 중단합니다.
+
+대부분은 여기까지만 하면 됩니다. 두 번째 계정을 연결할 때만 로컬 프로필 이름을 정해 두 명령에 같이 넣습니다.
+
+```bash
+social-memory browser open threads --profile-ref threads-work
+social-memory connector connect threads-chrome \
+  --profile-ref threads-work --include save --json
+```
 
 ### 다른 수집 경로
 
@@ -153,7 +158,7 @@ social-memory sync --connector x-chrome --kind save --limit 3 --json
 | `import` | 정해진 형식의 JSON | 로컬 가져오기 테스트 |
 | `fixture` | 외부 서비스 불필요 | 설치 확인용 합성 데이터 |
 
-Aside는 `aside account list`로 계정 ID를 찾고, 해당 SNS 계정이 로그인된 ID(예: `u1`)를 `--profile-ref`에 넣습니다. `connector configure`에서 `threads` 또는 `x-aside`를 선택하면 기존 Aside 경로를 사용합니다.
+Aside는 `aside account list`로 계정 ID를 찾고, 해당 SNS 계정이 로그인된 ID(예: `u1`)를 `--profile-ref`에 넣습니다. 확인 후 `connector connect threads --profile-ref u1 --include save`를 실행하며, X는 `x-aside`를 사용합니다.
 
 X API는 사용자 OAuth 토큰을 환경변수에 안전하게 준비한 뒤, 값이 아닌 **환경변수 이름**을 등록합니다.
 
@@ -216,14 +221,13 @@ social-memory doctor --json
 social-memory backup create --output "$HOME/social-memory-backup" --json
 social-memory backup restore --from "$HOME/social-memory-backup" \
   --data-dir "$HOME/social-memory-restored" --json
-social-memory upgrade --json
 ```
 
 [가져오기 스키마](schemas/capture-export-v1.schema.json)와 [합성 예제](examples/import.v1.json)를 참고하세요. 파일 근거의 경로는 내보내기 JSON이 있는 폴더 아래의 상대경로여야 합니다. 백업은 해시를 검증하며 복원은 기존 자료실을 덮어쓰지 않고 새 폴더를 만듭니다. 브라우저 세션은 백업에서 제외되므로 새 장비에서는 다시 로그인합니다.
 
 ## 현재 한계
 
-- **수집 경로 변경:** 위 중복 방지는 선택한 커넥터 안에서 적용됩니다. 같은 SNS 계정을 Chrome·Aside·API로 동시에 등록하면 현재는 경로 간 원문 중복이 생길 수 있으므로 한 가지 경로를 사용하세요. 이는 좋아요·북마크 선택 기능과 별개의 미해결 한계입니다.
+- **새 자료실 필요:** 이 개발 스키마에는 의도적으로 마이그레이션 계층이 없습니다. 이전 스키마로 만든 자료실은 변환하지 않고 거부하므로 `SOCIAL_MEMORY_DATA_DIR`을 새 폴더로 지정해야 합니다.
 
 - **운영체제:** macOS 우선 검증, Linux 코어 CI 포함. Windows CLI 초기화는 수정했지만 실기기 전체 흐름은 미검증입니다. 스케줄러는 macOS 전용입니다.
 - **화면 변경:** Chrome은 지원하는 한국어/영어 제목과 DOM 구조가 필요합니다. X/Threads가 화면을 바꾸면 수집이 중단될 수 있습니다.
@@ -242,7 +246,7 @@ npm run package:check
 SOCIAL_MEMORY_CHROME_TEST=1 node --test test/chrome-safety.test.mjs
 ```
 
-최근 로컬 검증에서 선택형 Chrome DOM 테스트를 포함한 81개 테스트를 통과했습니다. 이는 테스트 결과이며 실서비스 가용성 보장은 아닙니다.
+로컬 검증은 `npm test`와 선택형 Chrome DOM 테스트로 수행합니다. 테스트 통과가 실계정 수집 가용성을 보장하지는 않습니다.
 
 코어는 **원문(Source) / 수집 기록(Capture) / 근거(Evidence)**를 구분합니다. 커넥터는 정규화한 자료를 전달하고 AI는 해석을 담당합니다. [보안 경계](SECURITY.md)와 [변경 이력](CHANGELOG.md)을 확인하세요. 실계정 데이터·프로필·자격증명은 저장소 밖에 보관합니다.
 

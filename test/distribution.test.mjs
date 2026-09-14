@@ -7,6 +7,8 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 import { exitCodeForResult, runCli, satisfiesNodeVersion } from '../src/cli.mjs';
+import { createConnectorRegistry } from '../src/connectors/registry.mjs';
+import { createThreadsConnector } from '../src/connectors/threads.mjs';
 
 function captureOutput() {
   let value = '';
@@ -24,6 +26,20 @@ test('--help explains the deployable workflow without requiring a library', asyn
   assert.match(output.read(), /Usage: social-memory/);
   assert.match(output.read(), /doctor/);
   assert.match(output.read(), /--include like,save,repost/);
+  assert.doesNotMatch(output.read(), /\bupgrade\b/);
+});
+
+test('upgrade is not exposed when legacy libraries are intentionally unsupported', async () => {
+  const parent = await mkdtemp(join(tmpdir(), 'social-memory-no-upgrade-'));
+  const dataDir = join(parent, 'library');
+  const env = { SOCIAL_MEMORY_DATA_DIR: dataDir };
+  const output = captureOutput();
+
+  await runCli(['init', '--data-dir', dataDir, '--json'], { env: {}, stdout: output.stream });
+  await assert.rejects(
+    runCli(['upgrade', '--json'], { env, stdout: output.stream }),
+    /Unknown command: upgrade/,
+  );
 });
 
 test('--version reads the package version without requiring a library', async () => {
@@ -65,6 +81,68 @@ test('browser open creates a dedicated Chrome profile and opens the requested lo
   }]);
 });
 
+test('browser open uses a platform default profile and login page', async () => {
+  const parent = await mkdtemp(join(tmpdir(), 'social-memory-browser-default-'));
+  const dataDir = join(parent, 'library');
+  const env = { SOCIAL_MEMORY_DATA_DIR: dataDir };
+  const output = captureOutput();
+  const opens = [];
+
+  await runCli(['init', '--data-dir', dataDir, '--json'], { env: {}, stdout: output.stream });
+  for (const platform of ['threads', 'x']) {
+    await runCli(['browser', 'open', platform, '--json'], {
+      env,
+      stdout: output.stream,
+      openChromeProfile: async (input) => {
+        opens.push(input);
+        return { status: 'closed', profileRef: input.profileRef };
+      },
+    });
+  }
+
+  assert.deepEqual(opens, [
+    {
+      profileRoot: join(dataDir, 'chrome-profiles'),
+      profileRef: 'threads-default',
+      url: 'https://www.threads.com/',
+    },
+    {
+      profileRoot: join(dataDir, 'chrome-profiles'),
+      profileRef: 'x-default',
+      url: 'https://x.com/home',
+    },
+  ]);
+});
+
+test('connector connect discovers the signed-in Chrome account with the default profile', async () => {
+  const parent = await mkdtemp(join(tmpdir(), 'social-memory-connect-default-'));
+  const dataDir = join(parent, 'library');
+  const env = { SOCIAL_MEMORY_DATA_DIR: dataDir };
+  const output = captureOutput();
+  const connector = createThreadsConnector({
+    id: 'threads-chrome',
+    browserBridge: {
+      async inspectIdentity({ profileRef }) {
+        assert.equal(profileRef, 'threads-default');
+        return { handle: 'fictional_reader', profileUrl: 'https://example.test/@fictional_reader' };
+      },
+    },
+  });
+
+  await runCli(['init', '--data-dir', dataDir, '--json'], { env: {}, stdout: output.stream });
+  const result = await runCli([
+    'connector', 'connect', 'threads-chrome', '--include', 'save', '--json',
+  ], {
+    env,
+    stdout: output.stream,
+    registry: createConnectorRegistry([connector]),
+  });
+
+  assert.equal(result.configuredIdentity, 'fictional_reader');
+  assert.equal(result.profileRef, 'threads-default');
+  assert.deepEqual(result.selectedCaptureKinds, ['save']);
+});
+
 test('doctor distinguishes an uninitialized path from a ready versioned library', async () => {
   const parent = await mkdtemp(join(tmpdir(), 'social-memory-doctor-'));
   const dataDir = join(parent, 'not initialized');
@@ -79,7 +157,7 @@ test('doctor distinguishes an uninitialized path from a ready versioned library'
   await runCli(['init', '--data-dir', dataDir, '--json'], { env: {}, stdout: output.stream });
   const after = await runCli(['doctor', '--json'], { env, stdout: output.stream });
   assert.equal(after.status, 'ready');
-  assert.equal(after.checks.schema.version, 2);
+  assert.equal(after.checks.schema.version, 3);
   assert.equal(after.checks.permissions.status, 'pass');
 });
 

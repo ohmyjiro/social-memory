@@ -3,17 +3,22 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
   applied_at TEXT NOT NULL
 ) STRICT;
 
-INSERT OR IGNORE INTO schema_migrations (version, applied_at)
-VALUES (1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
-
 CREATE TABLE IF NOT EXISTS connectors (
   id TEXT PRIMARY KEY,
   capabilities_json TEXT NOT NULL,
   created_at TEXT NOT NULL
 ) STRICT;
 
+CREATE TABLE IF NOT EXISTS identities (
+  id INTEGER PRIMARY KEY,
+  platform TEXT NOT NULL,
+  handle TEXT NOT NULL,
+  UNIQUE(platform, handle)
+) STRICT;
+
 CREATE TABLE IF NOT EXISTS accounts (
   id INTEGER PRIMARY KEY,
+  identity_id INTEGER NOT NULL REFERENCES identities(id),
   connector_id TEXT NOT NULL REFERENCES connectors(id),
   configured_identity TEXT NOT NULL,
   profile_ref TEXT,
@@ -33,6 +38,7 @@ CREATE TABLE IF NOT EXISTS account_capture_kinds (
 
 CREATE TABLE IF NOT EXISTS sources (
   id INTEGER PRIMARY KEY,
+  platform TEXT NOT NULL,
   connector_id TEXT NOT NULL REFERENCES connectors(id),
   external_id TEXT NOT NULL,
   canonical_url TEXT,
@@ -45,7 +51,7 @@ CREATE TABLE IF NOT EXISTS sources (
   last_seen_at TEXT NOT NULL,
   availability TEXT NOT NULL DEFAULT 'available',
   raw_json TEXT NOT NULL DEFAULT '{}',
-  UNIQUE(connector_id, external_id)
+  UNIQUE(platform, external_id)
 ) STRICT;
 
 CREATE TABLE IF NOT EXISTS captures (
@@ -142,4 +148,4 @@ CREATE TRIGGER IF NOT EXISTS sources_au AFTER UPDATE ON sources BEGIN
 END;
 
 INSERT OR IGNORE INTO schema_migrations (version, applied_at)
-VALUES (2, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+VALUES (3, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));

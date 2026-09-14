@@ -163,7 +163,7 @@ export function createThreadsConnector({ id = 'threads', browserBridge = createA
   return Object.freeze({
     id,
     capabilities: Object.freeze(['like', 'save', 'repost']),
-    normalizeProfileRef: requireProfileRef,
+    normalizeProfileRef: value => requireProfileRef(value ?? (id === 'threads-chrome' ? 'threads-default' : undefined)),
     normalizeConfig(value) {
       const key = Object.keys(value)[0];
       if (key) throw new Error(`Unknown ${id} connector config field: ${key}`);

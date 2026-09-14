@@ -5,7 +5,7 @@ import { readFileSync, statSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 
-import { configureAccount, listAccounts } from './accounts.mjs';
+import { configureAccount, connectAccount, listAccounts } from './accounts.mjs';
 import { scaffoldAgentIntegration } from './agent-scaffold.mjs';
 import { createBackup, restoreBackup } from './backup.mjs';
 import { CAPTURE_KINDS } from './capture-kinds.mjs';
@@ -36,13 +36,14 @@ const HELP = `Usage: social-memory <command> [options]
 Commands:
   init --data-dir <absolute-path> [--json]
   doctor [--json]
-  upgrade [--json]
   backup create --output <absolute-directory> [--json]
   backup restore --from <absolute-directory> --data-dir <absolute-path> [--json]
   import --file <absolute-json> --account <identity> --include like,save,repost [--json]
   connector list [--json]
   connector configure <connector> --account <identity> --include like,save,repost [--profile-ref <id>] [--json]
   connector status [--json]
+  connector connect <connector> --include <like,save,repost> [--profile-ref <id>] [--json]
+  browser open x|threads [--profile-ref <id>] [--json]
   browser open --profile-ref <id> --url <http-or-https-url> [--json]
   schedule readiness [--json]
   schedule install --interval-minutes <n> [--json]
@@ -147,7 +148,7 @@ function doctor(config, commandAvailable) {
   const db = openDatabase(config.dbPath);
   try {
     const version = db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get().version;
-    checks.schema = { status: version === 2 ? 'pass' : 'fail', version };
+    checks.schema = { status: version === 3 ? 'pass' : 'fail', version };
     const asideConnectors = db.prepare(`
       SELECT DISTINCT connector_id
       FROM accounts
@@ -234,12 +235,18 @@ export async function runCli(args, {
 
   const config = loadConfig(env);
   if (command === 'browser' && subcommand === 'open') {
-    if (!options.profile_ref) throw new Error('--profile-ref is required');
-    if (!options.url) throw new Error('--url is required');
+    const defaults = {
+      x: { profileRef: 'x-default', url: 'https://x.com/home' },
+      threads: { profileRef: 'threads-default', url: 'https://www.threads.com/' },
+    }[subject];
+    const profileRef = options.profile_ref ?? defaults?.profileRef;
+    const url = options.url ?? defaults?.url;
+    if (!profileRef) throw new Error('--profile-ref is required');
+    if (!url) throw new Error('--url is required');
     const result = await openChromeProfile({
       profileRoot: join(config.dataDir, 'chrome-profiles'),
-      profileRef: options.profile_ref,
-      url: options.url,
+      profileRef,
+      url,
     });
     emit(stdout, result, options.json);
     return result;
@@ -255,6 +262,14 @@ export async function runCli(args, {
     let result;
     if (command === 'connector' && subcommand === 'list') {
       result = registry.list().map(({ id, capabilities }) => ({ id, capabilities }));
+    } else if (command === 'connector' && subcommand === 'connect') {
+      if (!subject) throw new Error('Connector id is required');
+      if (!options.include) throw new Error('--include is required');
+      result = await connectAccount(db, registry, {
+        connectorId: subject,
+        profileRef: options.profile_ref,
+        selectedCaptureKinds: options.include.split(',').map((kind) => kind.trim()),
+      });
     } else if (command === 'connector' && subcommand === 'configure') {
       if (!subject) throw new Error('Connector id is required');
       if (!options.account) throw new Error('--account is required');
@@ -324,11 +339,6 @@ export async function runCli(args, {
         outputDir: options.output,
         dataDir: config.dataDir,
       });
-    } else if (command === 'upgrade') {
-      result = {
-        status: 'upgraded',
-        schemaVersion: db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get().version,
-      };
     } else if (command === 'search') {
       result = searchSources(db, {
         query: positional.slice(1).join(' '),

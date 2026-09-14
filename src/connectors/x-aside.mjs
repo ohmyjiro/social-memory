@@ -158,7 +158,7 @@ export function createXAsideConnector({
   return Object.freeze({
     id,
     capabilities: Object.freeze(['like', 'save', 'repost']),
-    normalizeProfileRef: requireProfileRef,
+    normalizeProfileRef: value => requireProfileRef(value ?? (id === 'x-chrome' ? 'x-default' : undefined)),
     normalizeConfig(value) {
       const key = Object.keys(value)[0];
       if (key) throw new Error(`Unknown X Aside connector config field: ${key}`);
