@@ -2,7 +2,7 @@
 
 All notable changes to Social Memory will be documented here.
 
-## 0.1.0 - Unreleased
+## 0.1.0 - 2026-09-14
 
 - Added the local SQLite Source, Capture, and Evidence model.
 - Preserved likes, saves, reposts, and manual imports as distinct signals.
@@ -37,3 +37,4 @@ All notable changes to Social Memory will be documented here.
 - Kept explicit profile names as an optional multi-account path instead of a single-account requirement.
 - Deduplicated sources by platform and external post ID across Chrome, Aside, API, and declared extension routes.
 - Rejected legacy libraries without conversion and removed the misleading upgrade command.
+- Released the source under the PolyForm Perimeter License 1.0.1.

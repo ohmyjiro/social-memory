@@ -8,10 +8,10 @@ const projectRoot = new URL('../', import.meta.url);
 const allowUnlicensed = process.argv.includes('--allow-unlicensed');
 const packageManifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 if (!allowUnlicensed && (!packageManifest.license || packageManifest.license === 'UNLICENSED')) {
-  throw new Error('Public release is blocked until an open-source license is selected');
+  throw new Error('Public release is blocked until a license is selected');
 }
 const allowedRoots = ['src/', 'skills/', 'examples/', 'schemas/', 'assets/readme/'];
-const allowedFiles = new Set(['package.json', 'README.md', 'README.ko.md', 'CHANGELOG.md', 'SECURITY.md']);
+const allowedFiles = new Set(['package.json', 'README.md', 'README.ko.md', 'CHANGELOG.md', 'SECURITY.md', 'LICENSE.md']);
 const forbiddenNames = [/.env(?:\.|$)/, /\.sqlite(?:-|$)/, /cookie/i, /session/i];
 const forbiddenContents = [
   /\/Users\/[^/\s]+\//,

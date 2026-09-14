@@ -2,7 +2,7 @@
   "name": "social-memory",
   "version": "0.1.0",
   "description": "Local-first social evidence library for agentic LLM clients",
-  "license": "UNLICENSED",
+  "license": "SEE LICENSE IN LICENSE.md",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ohmyjiro/social-memory.git"
@@ -29,7 +29,8 @@
     "README.ko.md",
     "assets/readme/",
     "CHANGELOG.md",
-    "SECURITY.md"
+    "SECURITY.md",
+    "LICENSE.md"
   ],
   "publishConfig": {
     "access": "public"

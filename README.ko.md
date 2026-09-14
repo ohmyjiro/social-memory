@@ -8,7 +8,7 @@
 
 **X(트위터)와 Threads(스레드)**에서 좋아요·북마크·리포스트한 글을 내 컴퓨터에 모아두세요. **Codex나 Claude Code**에게 “지난주 저장한 글 중 앱에 쓸 아이디어 찾아줘”라고 물으면, 연결된 자료실에서 근거를 찾아 원문 링크와 함께 활용할 수 있습니다.
 
-> **개발 프리뷰입니다.** 로컬 CLI + SQLite + 읽기 전용 MCP로 구성됩니다. Chrome 수집은 구현 및 로컬 HTML 테스트를 마쳤지만 실계정 수집은 아직 미검증입니다. 라이선스 조건은 검토 중이며 패키지는 `UNLICENSED`를 유지합니다.
+> **개발 프리뷰입니다.** 로컬 CLI + SQLite + 읽기 전용 MCP로 구성됩니다. Chrome 수집은 구현 및 로컬 HTML 테스트를 마쳤지만 실계정 수집은 아직 미검증입니다. 소스는 PolyForm Perimeter License 1.0.1로 공개됩니다.
 
 [로컬 데모 실행](#로컬-데모-실행) · [계정 연결](#계정-연결) · [AI에게 질문](#ai에게-질문) · [현재-한계](#현재-한계)
 
@@ -250,4 +250,6 @@ SOCIAL_MEMORY_CHROME_TEST=1 node --test test/chrome-safety.test.mjs
 
 코어는 **원문(Source) / 수집 기록(Capture) / 근거(Evidence)**를 구분합니다. 커넥터는 정규화한 자료를 전달하고 AI는 해석을 담당합니다. [보안 경계](SECURITY.md)와 [변경 이력](CHANGELOG.md)을 확인하세요. 실계정 데이터·프로필·자격증명은 저장소 밖에 보관합니다.
 
-**라이선스 미정: `UNLICENSED`.** 라이선스 결정 전에는 공개 릴리스를 차단합니다. `npm run release:check`가 이를 검사하며 `package:check`는 개발용 패키지만 검증합니다. 공개 GitHub Release나 npm 패키지가 이미 제공된다고 가정하지 마세요.
+Social Memory는 [PolyForm Perimeter License 1.0.1](LICENSE.md)에 따라 소스가 공개됩니다. 허용된 목적에 한해 사용·수정·배포할 수 있지만, Social Memory와 경쟁하는 제품이나 서비스를 제공할 수는 없습니다. OSI 승인 오픈소스 라이선스는 아닙니다.
+
+태그된 버전은 `npm run release:check` 통과 후 GitHub Release 파일로 배포됩니다. npm 레지스트리 패키지는 현재 제공을 약속하지 않습니다.

@@ -218,7 +218,7 @@ test('package manifest is publish-shaped and uses an explicit file allowlist', a
   const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url)));
 
   assert.notEqual(packageJson.private, true);
-  assert.equal(packageJson.license, 'UNLICENSED');
+  assert.equal(packageJson.license, 'SEE LICENSE IN LICENSE.md');
   assert.deepEqual(packageJson.files, [
     'src/',
     'skills/',
@@ -230,6 +230,7 @@ test('package manifest is publish-shaped and uses an explicit file allowlist', a
     'assets/readme/',
     'CHANGELOG.md',
     'SECURITY.md',
+    'LICENSE.md',
   ]);
   assert.equal(packageJson.publishConfig.access, 'public');
   assert.equal(packageJson.bin['social-memory'], './src/bin.mjs');
@@ -243,14 +244,18 @@ test('package manifest is publish-shaped and uses an explicit file allowlist', a
   assert.equal(packageJson.scripts.prepublishOnly, 'npm run release:check');
 });
 
-test('public release check rejects an unlicensed package', () => {
+test('source-available license is included and passes the public release check', async () => {
+  const license = await readFile(new URL('../LICENSE.md', import.meta.url), 'utf8');
+  assert.match(license, /^# PolyForm Perimeter License 1\.0\.1/m);
+  assert.match(license, /^Required Notice: Copyright 2026 ohmyjiro$/m);
+
   const result = spawnSync(process.execPath, ['scripts/release-check.mjs'], {
     cwd: new URL('../', import.meta.url),
     encoding: 'utf8',
   });
 
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /open-source license is selected/);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).license, 'SEE LICENSE IN LICENSE.md');
 });
 
 test('release artifact builder writes a portable checksum using only the tarball name', async () => {

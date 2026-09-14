@@ -8,7 +8,7 @@
 
 Collect the posts you like, bookmark, and repost on **X (Twitter) and Threads** into a searchable local library. Then ask **Codex or Claude Code** to find implementation notes, compare marketing ideas, or help shape your next project—with links back to the originals.
 
-> **Development preview.** Local CLI + SQLite + read-only MCP. Chrome collection is implemented and tested against local HTML, but live account collection is not yet verified. Licensing terms are under review; the package remains `UNLICENSED`.
+> **Development preview.** Local CLI + SQLite + read-only MCP. Chrome collection is implemented and tested against local HTML, but live account collection is not yet verified. Source is available under the PolyForm Perimeter License 1.0.1.
 
 [Try the local demo](#try-the-local-demo) · [Connect an account](#connect-an-account) · [Ask your assistant](#ask-your-assistant) · [Current limits](#current-limits)
 
@@ -251,4 +251,6 @@ Run the commands above to verify the current checkout. Passing local and Chrome 
 
 The core keeps **Source / Capture / Evidence** separate; connectors provide normalized records; the assistant owns interpretation. Review [security boundaries](SECURITY.md) and the [changelog](CHANGELOG.md) before changing collection behavior. Keep real account data, profiles, and credentials outside the repository.
 
-**License pending: `UNLICENSED`.** Public release is blocked until a license is chosen. `npm run release:check` enforces that gate; `package:check` only checks the development artifact. Do not assume public GitHub Release or npm artifacts are available.
+Social Memory is source-available under the [PolyForm Perimeter License 1.0.1](LICENSE.md). You may use, modify, and distribute it for permitted purposes, but you may not provide a product or service that competes with Social Memory. This is not an OSI-approved open-source license.
+
+Tagged versions are published as GitHub Release artifacts after `npm run release:check` passes. No npm registry package is currently promised.
