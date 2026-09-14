@@ -23,7 +23,15 @@ export function openDatabase(dbPath) {
   rejectUnsafeDatabasePath(dbPath);
   const db = new DatabaseSync(dbPath);
   try {
-    if (db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='sources'").get() &&
+    const hasSources = db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='sources'").get();
+    const hasMigrations = db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='schema_migrations'").get();
+    if (hasMigrations) {
+      const version = db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get().version;
+      if (version !== 4) {
+        throw new Error('Legacy library is unsupported; use a new data directory. Existing data was not converted.');
+      }
+    }
+    if (hasSources &&
       !db.prepare('PRAGMA table_info(sources)').all().some((column) => column.name === 'platform')) {
       throw new Error('Legacy library is unsupported; use a new data directory. Existing data was not converted.');
     }

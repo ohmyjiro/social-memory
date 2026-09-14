@@ -36,6 +36,16 @@ CREATE TABLE IF NOT EXISTS account_capture_kinds (
   PRIMARY KEY(account_id, kind)
 ) STRICT;
 
+CREATE TABLE IF NOT EXISTS extension_connections (
+  installation_id TEXT NOT NULL,
+  platform TEXT NOT NULL CHECK(platform IN ('x', 'threads')),
+  account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  last_collected_at TEXT,
+  PRIMARY KEY(installation_id, platform)
+) STRICT;
+
 CREATE TABLE IF NOT EXISTS sources (
   id INTEGER PRIMARY KEY,
   platform TEXT NOT NULL,
@@ -148,4 +158,4 @@ CREATE TRIGGER IF NOT EXISTS sources_au AFTER UPDATE ON sources BEGIN
 END;
 
 INSERT OR IGNORE INTO schema_migrations (version, applied_at)
-VALUES (3, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+VALUES (4, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));

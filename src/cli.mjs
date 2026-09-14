@@ -148,7 +148,7 @@ function doctor(config, commandAvailable) {
   const db = openDatabase(config.dbPath);
   try {
     const version = db.prepare('SELECT MAX(version) AS version FROM schema_migrations').get().version;
-    checks.schema = { status: version === 3 ? 'pass' : 'fail', version };
+    checks.schema = { status: version === 4 ? 'pass' : 'fail', version };
     const asideConnectors = db.prepare(`
       SELECT DISTINCT connector_id
       FROM accounts
