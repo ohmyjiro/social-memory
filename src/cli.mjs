@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { readFileSync, statSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
@@ -28,6 +28,7 @@ import { getSource, searchSources } from './search.mjs';
 import { createLaunchAgentManager, scheduleReadiness } from './scheduler.mjs';
 import { runSync } from './sync.mjs';
 import { importCaptureFile } from './import-file.mjs';
+import { installExtensionHost } from './extension-host-installer.mjs';
 
 const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
@@ -45,6 +46,7 @@ Commands:
   connector connect <connector> --include <like,save,repost> [--profile-ref <id>] [--json]
   browser open x|threads [--profile-ref <id>] [--json]
   browser open --profile-ref <id> --url <http-or-https-url> [--json]
+  extension install-host --extension-id <id> [--json]
   schedule readiness [--json]
   schedule install --interval-minutes <n> [--json]
   schedule status [--json]
@@ -68,7 +70,7 @@ function parseArguments(args) {
     '--data-dir', '--account', '--include', '--connector', '--kind', '--since', '--limit', '--file',
     '--credential-env', '--profile-ref', '--keychain-service', '--keychain-user',
     '--interval-minutes',
-    '--output', '--from', '--client', '--url',
+    '--output', '--from', '--client', '--url', '--extension-id',
   ]);
   for (let index = 0; index < args.length; index += 1) {
     const token = args[index];
@@ -205,6 +207,7 @@ export async function runCli(args, {
   scheduleManager = createLaunchAgentManager(),
   commandAvailable = executableAvailable,
   openChromeProfile = openChromeProfileInBrowser,
+  installHost = installExtensionHost,
 } = {}) {
   const { positional, options } = parseArguments(args);
   const [command, subcommand, subject] = positional;
@@ -229,6 +232,20 @@ export async function runCli(args, {
     if (!options.from) throw new Error('--from is required');
     if (!options.data_dir) throw new Error('--data-dir is required');
     const result = await restoreBackup({ backupDir: options.from, dataDir: options.data_dir });
+    emit(stdout, result, options.json);
+    return result;
+  }
+  if (command === 'extension' && subcommand === 'install-host') {
+    if (!options.extension_id) throw new Error('--extension-id is required');
+    const config = loadConfig({ ...env, SOCIAL_MEMORY_DATA_DIR: options.data_dir ?? env.SOCIAL_MEMORY_DATA_DIR });
+    const result = await installHost({
+      platform: process.platform,
+      homeDir: env.HOME,
+      extensionId: options.extension_id,
+      dataDir: config.dataDir,
+      nodePath: process.execPath,
+      hostScriptPath: fileURLToPath(new URL('./extension-host.mjs', import.meta.url)),
+    });
     emit(stdout, result, options.json);
     return result;
   }

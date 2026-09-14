@@ -26,6 +26,7 @@ test('--help explains the deployable workflow without requiring a library', asyn
   assert.match(output.read(), /Usage: social-memory/);
   assert.match(output.read(), /doctor/);
   assert.match(output.read(), /--include like,save,repost/);
+  assert.match(output.read(), /extension install-host/);
   assert.doesNotMatch(output.read(), /\bupgrade\b/);
 });
 
@@ -49,6 +50,29 @@ test('--version reads the package version without requiring a library', async ()
 
   assert.deepEqual(result, { status: 'version', version: packageJson.version });
   assert.equal(output.read().trim(), packageJson.version);
+});
+
+test('extension host installation does not require an initialized library', async () => {
+  const homeDir = await mkdtemp(join(tmpdir(), 'social-memory-cli-host-'));
+  const dataDir = join(homeDir, 'library');
+  const output = captureOutput();
+  const calls = [];
+  const extensionId = 'abcdefghijklmnopabcdefghijklmnop';
+  const result = await runCli([
+    'extension', 'install-host', '--extension-id', extensionId, '--json',
+  ], {
+    env: { HOME: homeDir, SOCIAL_MEMORY_DATA_DIR: dataDir },
+    stdout: output.stream,
+    installHost: async (input) => {
+      calls.push(input);
+      return { hostName: 'com.ohmyjiro.social_memory', manifestPath: '/manifest', launcherPath: '/launcher' };
+    },
+  });
+
+  assert.equal(result.hostName, 'com.ohmyjiro.social_memory');
+  assert.equal(calls[0].extensionId, extensionId);
+  assert.equal(calls[0].homeDir, homeDir);
+  assert.equal(calls[0].dataDir, dataDir);
 });
 
 test('browser open creates a dedicated Chrome profile and opens the requested login page', async () => {
@@ -157,7 +181,7 @@ test('doctor distinguishes an uninitialized path from a ready versioned library'
   await runCli(['init', '--data-dir', dataDir, '--json'], { env: {}, stdout: output.stream });
   const after = await runCli(['doctor', '--json'], { env, stdout: output.stream });
   assert.equal(after.status, 'ready');
-  assert.equal(after.checks.schema.version, 3);
+  assert.equal(after.checks.schema.version, 4);
   assert.equal(after.checks.permissions.status, 'pass');
 });
 
@@ -221,6 +245,7 @@ test('package manifest is publish-shaped and uses an explicit file allowlist', a
   assert.equal(packageJson.license, 'SEE LICENSE IN LICENSE.md');
   assert.deepEqual(packageJson.files, [
     'src/',
+    'extension/',
     'skills/',
     'templates/',
     'examples/',
